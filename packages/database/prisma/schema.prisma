@@ -1,0 +1,328 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ChallengeStatus {
+  DRAFT
+  OPEN
+  JOINED
+  FUNDED
+  READY
+  IN_PROGRESS
+  RESULT_SUBMITTED
+  AWAITING_CONFIRMATION
+  CONFIRMED
+  DISPUTED
+  UNDER_REVIEW
+  RESOLVED
+  SETTLED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum ChallengePlayerStatus {
+  JOINED
+  FUNDED
+  LOCKED
+  ELIMINATED
+  DISQUALIFIED
+}
+
+enum MatchStatus {
+  READY
+  IN_PROGRESS
+  RESULT_SUBMITTED
+  CONFIRMED
+  DISPUTED
+  SETTLED
+  CANCELLED
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum LedgerAccountType {
+  USER_AVAILABLE
+  MATCH_VAULT
+  PLATFORM_REVENUE
+  SYSTEM
+}
+
+enum LedgerTransactionType {
+  INITIAL_CREDIT
+  STAKE_LOCK
+  STAKE_REFUND
+  MATCH_SETTLEMENT
+  PLATFORM_FEE
+  ADMIN_ADJUSTMENT
+}
+
+enum SettlementStatus {
+  PENDING
+  SETTLED
+  DISPUTED
+  CANCELLED
+}
+
+enum DisputeStatus {
+  OPEN
+  REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum EvidenceType {
+  SCREENSHOT
+  VIDEO
+  LOG
+  OTHER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DELETED
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model Session {
+  id String @id @default(cuid())
+  userId String
+  refreshTokenHash String @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("sessions")
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  username        String           @unique
+  passwordHash    String           @default("")
+  status          UserStatus       @default(ACTIVE)
+  role            UserRole         @default(USER)
+  emailVerified   Boolean          @default(false)
+  sessions        Session[]
+  displayName     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  profile         Profile?
+  accounts        LedgerAccount[]
+  challengePlayers ChallengePlayer[]
+  gameAccounts    GameAccount[]
+  auditLogs       AuditLog[]
+  disputes        Dispute[]
+  winnerResults   MatchResult[]    @relation("WinnerUser")
+
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  bio       String?
+  region    String?
+  countryCode String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Game {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  enabled     Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  accounts    GameAccount[]
+  challenges  Challenge[]
+
+  @@map("games")
+}
+
+model GameAccount {
+  id         String   @id @default(cuid())
+  userId     String
+  gameId     String
+  externalId String?
+  platform   String @default("PC")
+  gamertag   String @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId, platform])
+  @@unique([gameId, platform, gamertag])
+  @@map("game_accounts")
+}
+
+model Challenge {
+  id              String           @id @default(cuid())
+  slug            String           @unique
+  title           String
+  description     String?
+  status          ChallengeStatus  @default(OPEN)
+  gameId          String
+  createdByUserId String
+  entryFee        Int              @default(0)
+  currency        String           @default("TEST")
+  platform        String           @default("PC")
+  mode            String           @default("1v1")
+  prizePool       Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  game            Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  players         ChallengePlayer[]
+  matches         Match[]
+
+  @@map("challenges")
+}
+
+model ChallengePlayer {
+  id          String                 @id @default(cuid())
+  challengeId String
+  userId     String
+  joinedAt    DateTime               @default(now())
+  lockedAt    DateTime?
+  status      ChallengePlayerStatus  @default(JOINED)
+  challenge   Challenge              @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@map("challenge_players")
+}
+
+model Match {
+  id          String      @id @default(cuid())
+  challengeId String
+  status      MatchStatus @default(READY)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  challenge   Challenge   @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  results     MatchResult[]
+
+  @@map("matches")
+}
+
+model MatchResult {
+  id           String          @id @default(cuid())
+  matchId      String          @unique
+  winnerUserId String?
+  score        String?
+  status       SettlementStatus @default(PENDING)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  match        Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  winner       User?           @relation("WinnerUser", fields: [winnerUserId], references: [id], onDelete: SetNull)
+  disputes     Dispute[]
+
+  @@map("match_results")
+}
+
+model LedgerAccount {
+  id           String             @id @default(cuid())
+  userId       String?
+  challengeId  String?
+  accountType  LedgerAccountType
+  singletonKey String?            @unique
+  name         String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  user         User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions LedgerEntry[]
+
+  @@unique([userId, accountType])
+  @@unique([challengeId, accountType])
+  @@map("ledger_accounts")
+}
+
+model LedgerTransaction {
+  id             String                @id @default(cuid())
+  matchId        String?
+  type           LedgerTransactionType
+  idempotencyKey String                @unique
+  description    String?
+  createdAt      DateTime              @default(now())
+  entries        LedgerEntry[]
+
+  @@unique([matchId, type])
+  @@map("ledger_transactions")
+}
+
+model LedgerEntry {
+  id              String             @id @default(cuid())
+  transactionId   String
+  ledgerAccountId String
+  direction       LedgerDirection    @default(CREDIT)
+  amount          Int
+  description     String?
+  createdAt       DateTime           @default(now())
+  transaction     LedgerTransaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  ledgerAccount   LedgerAccount      @relation(fields: [ledgerAccountId], references: [id], onDelete: Cascade)
+
+  @@map("ledger_entries")
+}
+
+model Evidence {
+  id        String      @id @default(cuid())
+  entityType String
+  entityId   String
+  type      EvidenceType
+  url       String
+  createdAt DateTime    @default(now())
+
+  @@map("evidence")
+}
+
+model Dispute {
+  id            String       @id @default(cuid())
+  matchResultId String
+  raisedByUserId String
+  reason        String
+  status        DisputeStatus @default(OPEN)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  matchResult   MatchResult  @relation(fields: [matchResultId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [raisedByUserId], references: [id], onDelete: Cascade)
+
+  @@map("disputes")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}

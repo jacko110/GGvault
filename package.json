@@ -1,0 +1,42 @@
+{
+  "name": "ggvault",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:admin": "npm --prefix apps/admin run dev",
+    "dev:api": "npm run build:shared && npm --prefix apps/api run start:dev",
+    "build": "npm run build:database && npm run build:shared && npm run build:ledger && npm run build:match-engine && npm run build:web && npm run build:admin && npm run build:api",
+    "build:web": "npm --prefix apps/web run build",
+    "build:admin": "npm --prefix apps/admin run build",
+    "build:api": "npm --prefix apps/api run build",
+    "build:database": "npm --prefix packages/database run build",
+    "build:shared": "npm --prefix packages/shared run build",
+    "build:ledger": "npm --prefix packages/ledger run build",
+    "build:match-engine": "npm --prefix packages/match-engine run build",
+    "prisma:generate": "npm --prefix packages/database run prisma:generate",
+    "prisma:migrate": "npm --prefix packages/database run prisma:migrate",
+    "test": "node scripts/test-api.cjs all",
+    "lint": "npm --prefix apps/api run lint && npm --prefix apps/web run lint && npm --prefix apps/admin run lint",
+    "format": "prettier --write .",
+    "docker:up": "docker compose up -d postgres redis",
+    "docker:down": "docker compose down",
+    "test:unit": "node scripts/test-api.cjs unit",
+    "test:integration": "node scripts/test-api.cjs integration",
+    "test:e2e": "node scripts/test-api.cjs e2e",
+    "prisma:deploy": "prisma migrate deploy --schema packages/database/prisma/schema.prisma",
+    "seed": "node scripts/seed.cjs"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.1",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=22.9.0"
+  }
+}

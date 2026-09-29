@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "5.0",
+    "paths": {
+      "@ggvault/shared": ["../../packages/shared/src"],
+      "@ggvault/ledger": ["../../packages/ledger/src"],
+      "@ggvault/match-engine": ["../../packages/match-engine/src"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}
