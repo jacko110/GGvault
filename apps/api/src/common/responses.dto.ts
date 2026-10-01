@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { discoverableStatuses } from '../challenges/challenges.dto';
 
 export class ErrorResponse {
   @ApiProperty() statusCode!: number;
@@ -55,11 +56,15 @@ export class ParticipantResponse {
   @ApiProperty({ type: ParticipantUserResponse })
   user!: ParticipantUserResponse;
 }
+export class ChallengeMatchResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() status!: string;
+}
 export class ChallengeResponse {
   @ApiProperty() id!: string;
   @ApiProperty() gameId!: string;
   @ApiProperty() creatorId!: string;
-  @ApiProperty({ enum: ['OPEN', 'JOINED', 'FUNDED', 'CANCELLED', 'EXPIRED'] })
+  @ApiProperty({ enum: discoverableStatuses })
   status!: string;
   @ApiProperty() stakeAmount!: number;
   @ApiProperty({ enum: ['TEST'] }) currency!: string;
@@ -67,6 +72,8 @@ export class ChallengeResponse {
   @ApiProperty({ enum: ['1v1'] }) mode!: string;
   @ApiProperty() createdAt!: string;
   @ApiProperty({ type: [ParticipantResponse] }) players!: ParticipantResponse[];
+  @ApiProperty({ type: [ChallengeMatchResponse] })
+  matches!: ChallengeMatchResponse[];
 }
 export class ChallengePageResponse {
   @ApiProperty({ type: [ChallengeResponse] }) items!: ChallengeResponse[];

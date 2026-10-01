@@ -1,4 +1,4 @@
-# Phase 3 security and validation
+# Security and validation through Phase 4
 
 Passwords are Argon2id hashes; refresh tokens are hashed random secrets. JWT secrets are mandatory configuration. Passwords, hashes and tokens are excluded from audit events and user responses. Framework validation suppresses target objects and submitted values in exceptions. Unhandled errors return a generic 500 without Prisma errors or stack traces.
 
@@ -27,7 +27,15 @@ npm run test:e2e
 
 The root test commands load `.env` and supply a test-only JWT secret if one is absent. They do not disable tests, mock the database, or mock the ledger. Node 22.9+ is required by the environment-loading scripts. Test categories run serially to avoid concurrent database truncation.
 
-Deployment needs a TLS terminator, deliberately configured proxy trust, secrets management, Redis/PostgreSQL isolation and audit retention policy. Email verification, password reset, refresh-session management UI and automatic challenge expiration are future workflows, not Phase 3 public endpoints. There are no real payments, withdrawals, match results, disputes, tournaments or external game integrations.
+Deployment needs a TLS terminator, deliberately configured proxy trust, secrets management, Redis/PostgreSQL isolation and audit retention policy. Email verification, password reset, refresh-session management UI and automatic challenge expiration remain future workflows. Phase 4 adds results and disputes, but no real payments, withdrawals, public settlement, moderator resolution, tournaments or external game integrations.
+
+## Phase 4 match and evidence boundaries
+
+Match rooms, timelines and evidence reads are private to participants and active moderators/admins. Match actions and evidence upload require actual participation; staff roles do not confer impersonation rights. Scores derive the proposed winner on the server. The submitting player cannot confirm or dispute their own result. A unique match-per-challenge index, unique result-per-match index, unique dispute-per-result index and Serializable retries protect concurrent actions.
+
+All match mutations touch the same match row. Confirmation/dispute races produce one winner, and evidence cannot commit after a terminal decision. Every upload records a safe timeline event and a private audit entry atomically with metadata. No Phase 4 action invokes settlement. Tests verify vault retention and global conservation after both outcomes.
+
+Uploaded files are size-bounded, checked against MIME/extension/content markers, and stored outside public assets under random server IDs. PostgreSQL holds metadata and SHA-256 only. Download checks authorization, match ownership and integrity before serving an attachment with no-sniff/no-store headers. A database trigger prevents changes or deletion of committed evidence. There is no evidence update/delete API. See [evidence.md](evidence.md) for memory bounds, configuration, orphan reconciliation and the limits of header validation.
 
 ## Dependency audit limitation
 

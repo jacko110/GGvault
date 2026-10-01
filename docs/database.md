@@ -12,6 +12,8 @@ GGVault v0.1 uses PostgreSQL as the system of record and Prisma as the schema an
 - Challenge: competitive challenge definition.
 - ChallengePlayer: join and funding state for a player in a challenge.
 - Match: scheduled or active game instance inside a challenge.
+- MatchParticipant: immutable membership snapshot with per-user readyAt.
+- MatchEvent: ordered safe room timeline, separate from private AuditLog records.
 - MatchResult: winner, score, and settlement state for a match.
 - LedgerAccount: an accounting bucket with an account type, not a mutable balance field.
 - LedgerTransaction: a financial event that records a balanced set of entries.
@@ -36,3 +38,9 @@ The service uses PostgreSQL Serializable isolation for ledger mutations and Phas
 ## Idempotency
 
 Every ledger transaction uses a database-unique idempotency key. Retrying a legitimate operation with the same key returns the original transaction instead of creating another debit/credit pair.
+
+## Phase 4 constraints
+
+Match.challengeId is unique for v0.1. MatchResult.matchId and Dispute.matchResultId are unique. Result records store submitter-relative scores and submission/confirmation identities and timestamps. A migration snapshots existing match participants and provisions a READY match for correctly funded two-player challenges that lack one.
+
+Evidence retains compatibility with earlier generic metadata but new match evidence includes a private object key, uploader, MIME, byte count and SHA-256. A trigger prevents updates/deletes once an object key is assigned. Uploaded bytes stay outside PostgreSQL. Match actions and evidence metadata use the same Serializable match-row transaction boundary; no Phase 4 migration changes ledger tables.

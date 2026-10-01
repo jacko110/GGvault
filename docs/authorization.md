@@ -19,3 +19,5 @@
 | Vault read | Challenge participant only |
 
 Profile DTOs allow displayName, bio, avatarUrl and countryCode. They cannot change roles, status, accounts, balances or trust fields. Responses use explicit selections and response DTOs rather than serializing Prisma users or sessions.
+
+Phase 4 match rooms, timelines and evidence are private to participants plus active MODERATOR/ADMIN readers. Only participants can ready, submit scores or upload evidence. Only the non-submitting opponent can confirm/dispute. Staff read permissions grant no action or financial permissions. Evidence requests also bind the evidence ID to the requested match.

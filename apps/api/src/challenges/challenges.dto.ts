@@ -3,6 +3,18 @@ import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
 import { platforms } from '../users/users.dto';
 
+export const discoverableStatuses = [
+  'OPEN',
+  'JOINED',
+  'FUNDED',
+  'IN_PROGRESS',
+  'RESULT_SUBMITTED',
+  'CONFIRMED',
+  'DISPUTED',
+  'CANCELLED',
+  'EXPIRED',
+] as const;
+
 export class CreateChallengeDto {
   @ApiProperty() @Matches(/^c[a-z0-9]{24}$/) gameId!: string;
   @ApiProperty({ minimum: 1, maximum: 1000000000 })
@@ -16,11 +28,11 @@ export class CreateChallengeDto {
 }
 export class DiscoverDto {
   @ApiPropertyOptional({
-    enum: ['OPEN', 'JOINED', 'FUNDED', 'CANCELLED', 'EXPIRED'],
+    enum: discoverableStatuses,
   })
   @IsOptional()
-  @IsIn(['OPEN', 'JOINED', 'FUNDED', 'CANCELLED', 'EXPIRED'])
-  status?: 'OPEN' | 'JOINED' | 'FUNDED' | 'CANCELLED' | 'EXPIRED';
+  @IsIn(discoverableStatuses)
+  status?: (typeof discoverableStatuses)[number];
   @ApiPropertyOptional()
   @IsOptional()
   @Matches(/^c[a-z0-9]{24}$/)

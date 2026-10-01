@@ -9,9 +9,16 @@ import { AuthModule } from './auth/auth.module';
 import { UsersController } from './users/users.controller';
 import { ChallengesController } from './challenges/challenges.controller';
 import { ChallengesService } from './challenges/challenges.service';
+import { MatchesModule } from './matches/matches.module';
 
 @Module({
-  imports: [DatabaseModule, HealthModule, LedgerModule, AuthModule],
+  imports: [
+    DatabaseModule,
+    HealthModule,
+    LedgerModule,
+    AuthModule,
+    MatchesModule,
+  ],
   controllers: [AppController, UsersController, ChallengesController],
   providers: [AppService, DatabaseService, ChallengesService],
 })

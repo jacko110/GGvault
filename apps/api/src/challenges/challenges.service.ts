@@ -5,6 +5,7 @@ import { PrismaService } from '../database/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { audit, fail, serializable } from '../common/domain';
 import { CreateChallengeDto, DiscoverDto } from './challenges.dto';
+import { ensureFundedMatch } from '../matches/match-provision';
 
 const challengeSelect = {
   id: true,
@@ -16,6 +17,7 @@ const challengeSelect = {
   platform: true,
   mode: true,
   createdAt: true,
+  matches: { select: { id: true, status: true } },
   players: {
     select: {
       userId: true,
@@ -249,8 +251,9 @@ export class ChallengesService {
         include: { transactions: true },
       });
       const updated = await this.get(tx, id);
+      if (updated.status === 'FUNDED') await ensureFundedMatch(tx, id);
       return {
-        challenge: view(updated),
+        challenge: view(await this.get(tx, id)),
         player: updated.players.find((p) => p.userId === userId),
         vaultBalance:
           vault?.transactions.reduce(

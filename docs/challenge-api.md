@@ -15,6 +15,8 @@ Funding requires `Idempotency-Key`: 8–128 letters, digits, colons, underscores
 
 Funding is allowed only after two players have joined. First funding leaves JOINED. Second funding moves to FUNDED. A creator cannot cancel once either stake is locked. Expiration has no public action endpoint in Phase 3.
 
+Phase 4 extension: second funding also creates exactly one READY match in the same transaction. Challenge responses now include `matches` with its ID/status. Discovery accepts IN_PROGRESS, RESULT_SUBMITTED, CONFIRMED and DISPUTED in addition to the original states. Private room access and actions use the match ID; see [match-lifecycle.md](match-lifecycle.md).
+
 Discovery is ordered by unique ascending challenge ID. Pass the returned nextCursor without changing filters to fetch the next page. `null` means the last page. Concurrent new challenges can appear on later pages; this is keyset pagination, not a frozen snapshot.
 
 Complete local flow:

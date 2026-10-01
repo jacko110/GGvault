@@ -1,12 +1,12 @@
 # GGVault project progress
 
-Last updated: 2026-09-29
+Last updated: 2026-10-01
 
 This is the ongoing record of completed work, current work, outstanding tasks and phase handovers. Update it as work progresses. Completed implementation and completed review delivery are tracked separately.
 
 ## Current position
 
-Phase 3 implementation is complete and locally validated. The API supports registration through two-player challenge funding with non-withdrawable TEST credits. Public and admin frontends are still placeholders. The next phase has not been specified or started.
+Phase 4 implementation and validation are complete. The API supports funded match creation, readiness, private rooms, result confirmation/disputes, immutable evidence and timelines. Test credits remain locked after either result decision. Public and admin frontends are still placeholders. The phase is committed and the source-only review archive is generated and verified.
 
 ## Phase overview
 
@@ -15,7 +15,7 @@ Phase 3 implementation is complete and locally validated. The API supports regis
 | Foundation (pre-Phase 3) | Monorepo, Next.js placeholders, NestJS API, PostgreSQL, Redis and shared packages | Present in the existing project | Earlier completion date and phase-specific validation were not recorded |
 | Phase 2 | Database and double-entry test-credit ledger | Existing foundation retained; regression tests pass | 17 ledger integration tests passed during Phase 3 validation |
 | Phase 3 | Identity, authentication, authorization, profiles, game accounts and challenge API | Complete; locally validated on 2026-09-29 | [Validation report](phase3-validation.md); no phase commit or review archive created |
-| Next phase | Awaiting user requirements | Not started | Establish Git baseline before implementation |
+| Phase 4 | Match lifecycle, result verification, immutable evidence and timeline | Complete; validated on 2026-10-01 | Baseline a9e3209; [validation report](phase4-validation.md); source-only review delivered; commit identity in phase4-commit.txt |
 
 ## Completed work
 
@@ -45,9 +45,9 @@ Verified outcome: Amir **90**, Samuel **90**, vault **20**, challenge **FUNDED**
 - [x] Record future phase review requirements in [AGENTS.md](../AGENTS.md).
 - [x] Exclude dependencies, secrets, build output, logs, caches and review artifacts from Git.
 - [x] Create this progress tracker and link it from the README.
-- [ ] Establish the first baseline commit before the next implementation phase.
+- [x] Establish source-only baseline commit `a9e3209` before Phase 4.
 
-## Latest validation
+## Phase 3 baseline validation
 
 These are the recorded Phase 3 results, not checks rerun by a documentation update.
 
@@ -70,11 +70,24 @@ See [phase3-validation.md](phase3-validation.md) for suite names and details.
 | Item | Status | Next action |
 | --- | --- | --- |
 | Existing framework dependency advisories | Open; production deployment limitation | Plan and validate dependency upgrades; see [security notes](security.md#dependency-audit-limitation) |
-| Git baseline | Pending | Commit the current reviewed source before starting the next phase |
-| Next phase requirements | Not supplied | Record the agreed scope when provided |
+| Git baseline | Complete | a9e3209 |
+| Phase 4 handover | Delivered | GGvault-phase4-review.zip; commit identity in phase4-commit.txt |
 | Future phase review delivery | Required at every phase completion | Commit, generate patch/stat/commit reports, create and inspect source-only ZIP |
 
-Real payments, withdrawals, TikTok, tournaments, external game APIs, match start/results/disputes, public settlement and final frontend UI are outside the completed Phase 3 scope. They are not automatically approved future work.
+Real payments, withdrawals, TikTok, tournaments, external game APIs, moderator resolution, public settlement and final frontend UI remain outside Phase 4. No future phase has been started.
+
+## Phase 4 validation
+
+Clean PostgreSQL/Redis reset, Prisma generation, all three migrations and FC 26 seed passed on 2026-10-01. Unit tests: 4 suites / 18 passed / 0 failed. Ledger integration: 1 suite / 17 passed / 0 failed. E2E: 4 suites / 102 passed / 0 failed. Total: **9 suites / 137 passed / 0 failed**. Full workspace build, repository lint and compiled API/OpenAPI smoke checks passed. No ledger implementation changes.
+
+## Phase 4 completion
+
+- [x] Establish baseline commit.
+- [x] Implement match schema, provisioning, readiness and result actions.
+- [x] Implement private immutable evidence and safe timeline.
+- [x] Complete PostgreSQL tests and clean validation.
+- [x] Complete documentation and final commit.
+- [x] Generate Git reports and inspect source-only review archive (65 members; hashes match committed source and Git reports).
 
 ## Work log
 
@@ -86,6 +99,9 @@ Real payments, withdrawals, TikTok, tournaments, external game APIs, match start
 | 2026-09-29 | Update request-validation dependency | class-validator upgraded to 0.15.1; API and tests revalidated |
 | 2026-09-29 | Record source-only phase handover rules | Standing instructions and Git exclusions updated |
 | 2026-09-29 | Add ongoing progress documentation | Tracker created and linked from README |
+| 2026-09-29 | Start Phase 4 and commit the existing source baseline | Baseline a9e3209; match/evidence implementation started |
+| 2026-10-01 | Resume Phase 4; deploy clean schema and validate | All 137 tests pass; full workspace build, lint and API smoke checks pass |
+| 2026-10-01 | Commit Phase 4 and verify source-only handover | GGvault-phase4-review.zip and all three Git reports generated; forbidden paths excluded and all 65 member hashes verified |
 
 ## Future phase record template
 
