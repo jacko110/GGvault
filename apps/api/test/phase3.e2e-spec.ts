@@ -96,6 +96,20 @@ describe('Phase 3 API with real PostgreSQL, Redis and LedgerService', () => {
     if (app) await app.close();
   });
 
+  it('exposes only enabled public game fields to authenticated players', async () => {
+    await db.game.create({
+      data: { slug: 'disabled-arena', name: 'Disabled', enabled: false },
+    });
+    await api().get('/games').expect(401);
+    const response = await api()
+      .get('/games')
+      .set('Authorization', auth(amir.accessToken))
+      .expect(200);
+    expect(response.body).toEqual([
+      { id: gameId, name: 'FC 26', slug: 'fc-26' },
+    ]);
+  });
+
   it('registers normalized identities, hashes passwords and grants 100 credits through the ledger', async () => {
     const res = await api()
       .post('/auth/register')
@@ -423,11 +437,20 @@ describe('Phase 3 API with real PostgreSQL, Redis and LedgerService', () => {
     amir.accessToken = amirLogin.body.accessToken as string;
     samuel.accessToken = samuelLogin.body.accessToken as string;
     for (const user of [amir, samuel]) {
-      await api().patch('/users/me').set('Authorization', auth(user.accessToken)).send({ displayName: user.user.username, countryCode: 'KE' }).expect(200);
+      await api()
+        .patch('/users/me')
+        .set('Authorization', auth(user.accessToken))
+        .send({ displayName: user.user.username, countryCode: 'KE' })
+        .expect(200);
     }
     challengeId = (await create().expect(201)).body.id as string;
-    const discovered = await api().get(`/challenges?gameId=${gameId}&status=OPEN`).set('Authorization', auth(samuel.accessToken)).expect(200);
-    expect((discovered.body.items as Array<{ id: string }>).map(item => item.id)).toContain(challengeId);
+    const discovered = await api()
+      .get(`/challenges?gameId=${gameId}&status=OPEN`)
+      .set('Authorization', auth(samuel.accessToken))
+      .expect(200);
+    expect(
+      (discovered.body.items as Array<{ id: string }>).map((item) => item.id),
+    ).toContain(challengeId);
     await join(challengeId).expect(200);
     const first = await action(challengeId, 'fund').expect(200);
     expect(first.body.challenge.status).toBe('JOINED');

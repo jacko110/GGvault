@@ -21,6 +21,8 @@ log/
 .parcel-cache/
 .swc/
 .nyc_output/
+playwright-report/
+test-results/
 build/
 out/
 tmp/

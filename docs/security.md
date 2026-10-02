@@ -1,4 +1,4 @@
-# Security and validation through Phase 5
+# Security and validation through Phase 6A
 
 Passwords are Argon2id hashes; refresh tokens are hashed random secrets. JWT secrets are mandatory configuration. Passwords, hashes and tokens are excluded from audit events and user responses. Framework validation suppresses target objects and submitted values in exceptions. Unhandled errors return a generic 500 without Prisma errors or stack traces.
 
@@ -44,3 +44,7 @@ The September 29, 2026 full-workspace audit flagged existing Next.js 14.2.15 and
 ## Phase 5 settlement and moderation
 
 Phase 5 supersedes the prior no-settlement boundary. Confirmation, moderator resolution and posting run in Serializable transactions, with same-match writes and database uniqueness across settlement/refund outcomes. Clients cannot supply monetary amounts or winner accounts. SettlementPolicy validates startup configuration. MODERATOR/ADMIN permissions are rechecked; participants cannot adjudicate their own match. Raw ledger editing is not exposed. Safe audit fields and private/no-store moderation responses avoid unrelated private data. Evidence remains protected and immutable. Existing dependency advisory and deployment limitations above remain open. See [settlement.md](settlement.md) and [moderation.md](moderation.md).
+
+## Phase 6A browser boundary
+
+The public web app uses an opaque HttpOnly, SameSite=Lax session cookie; backend access/refresh tokens remain in private server-side Redis. Production cookies require HTTPS by default. Mutations require an exact Origin and JSON content type. The server proxy allowlists Phase 6A routes, strips internal vault account IDs and returns safe error messages. See [frontend security and deployment details](frontend.md#authentication-and-browser-api-boundary). Backend authorization remains authoritative, including ownership and participant checks. No ledger accounting or real-payment behavior changed.

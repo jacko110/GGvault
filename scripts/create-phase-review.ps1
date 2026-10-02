@@ -1,4 +1,4 @@
-param([Parameter(Mandatory = $true)][ValidateRange(1, 999)][int]$Phase)
+param([Parameter(Mandatory = $true)][ValidatePattern('^[1-9][0-9]{0,2}[a-z]?$')][string]$Phase)
 $ErrorActionPreference = 'Stop'
 $reviewWorkspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $reviewWorkspace
@@ -10,19 +10,19 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { createHash, randomUUID } = require('node:crypto');
 const phase = process.env.GG_REVIEW_PHASE;
-if (!/^[1-9][0-9]{0,2}$/.test(phase)) throw new Error('Invalid phase');
+if (!/^[1-9][0-9]{0,2}[a-z]?$/.test(phase)) throw new Error('Invalid phase');
 const git = args => execFileSync('git', args, { maxBuffer: 32 * 1024 * 1024 });
 if (git(['status', '--porcelain']).toString().trim()) throw new Error('Commit all phase source changes before packaging');
 git(['rev-parse', 'HEAD~1']);
 const commit = git(['rev-parse', 'HEAD']).toString().trim();
 const tracked = git(['ls-tree', '-r', '--name-only', 'HEAD']).toString().trim().split('\n');
-const forbidden = f => f.split('/').some(p => /^(node_modules|\.next|dist|coverage|\.git|logs?|storage|tmp|temp|build|out|\.cache|\.npm|\.turbo|\.swc|\.parcel-cache|\.nyc_output)$/i.test(p) || (/^\.env(?:\.|$)/i.test(p) && p !== '.env.example')) || /(?:\.log|\.tmp|\.temp|\.tsbuildinfo|\.zip|\.patch|next-env\.d\.ts|\.eslintcache|\.stylelintcache)$/i.test(f);
+const forbidden = f => f.split('/').some(p => /^(node_modules|\.next|dist|coverage|playwright-report|test-results|\.git|logs?|storage|tmp|temp|build|out|\.cache|\.npm|\.turbo|\.swc|\.parcel-cache|\.nyc_output)$/i.test(p) || (/^\.env(?:\.|$)/i.test(p) && p !== '.env.example')) || /(?:\.log|\.tmp|\.temp|\.tsbuildinfo|\.zip|\.patch|next-env\.d\.ts|\.eslintcache|\.stylelintcache)$/i.test(f);
 if (tracked.some(forbidden)) throw new Error('Forbidden tracked files: ' + tracked.filter(forbidden).join(', '));
 const changed = new Set(git(['diff', '--name-only', '--diff-filter=ACMR', 'HEAD~1', 'HEAD']).toString().trim().split('\n'));
 const source = /\.(?:ts|tsx|js|jsx|cjs|mjs|json|css|scss|md|sql|prisma|toml|yml|yaml|ps1|base64)$/;
 const selected = tracked.filter(f =>
   (changed.has(f) && source.test(f)) ||
-  /^apps\/api\/test\//.test(f) ||
+  /^apps\/api\/test\//.test(f) || /^apps\/web\/tests\//.test(f) ||
   /^packages\/database\/prisma\//.test(f) ||
   /^docs\//.test(f) ||
   /(^|\/)package\.json$/.test(f) ||
@@ -32,7 +32,7 @@ fs.mkdirSync(stage, { recursive: true });
 const files = [];
 function add(name, bytes) {
   if (forbidden(name) && !new RegExp(`^phase${phase}\\.patch$`).test(name)) throw new Error('Forbidden review path: ' + name);
-  if (!/^[A-Za-z0-9_.\/-]+$/.test(name) || name.split('/').includes('..')) throw new Error('Unsafe review path');
+  if (!/^[A-Za-z0-9_.\/()\[\]-]+$/.test(name) || name.split('/').includes('..')) throw new Error('Unsafe review path');
   const target = path.join(stage, name);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, bytes);

@@ -10,6 +10,7 @@ import { UsersController } from './users/users.controller';
 import { ChallengesController } from './challenges/challenges.controller';
 import { ChallengesService } from './challenges/challenges.service';
 import { MatchesModule } from './matches/matches.module';
+import { GamesController } from './games.controller';
 
 @Module({
   imports: [
@@ -19,7 +20,12 @@ import { MatchesModule } from './matches/matches.module';
     AuthModule,
     MatchesModule,
   ],
-  controllers: [AppController, UsersController, ChallengesController],
+  controllers: [
+    AppController,
+    UsersController,
+    ChallengesController,
+    GamesController,
+  ],
   providers: [AppService, DatabaseService, ChallengesService],
 })
 export class AppModule {}
