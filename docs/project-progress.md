@@ -1,12 +1,14 @@
 # GGVault project progress
 
-Last updated: 2026-10-01
+Last updated: 2026-10-02
 
 This is the ongoing record of completed work, current work, outstanding tasks and phase handovers. Update it as work progresses. Completed implementation and completed review delivery are tracked separately.
 
 ## Current position
 
-Phase 4 implementation and validation are complete. The API supports funded match creation, readiness, private rooms, result confirmation/disputes, immutable evidence and timelines. Test credits remain locked after either result decision. Public and admin frontends are still placeholders. The phase is committed and the source-only review archive is generated and verified.
+Phase 5 implementation and validation are complete from approved Phase 4 commit `cbb5b36`. Scope: automatic confirmed settlement, server fee policy, moderator dispute review/resolution, void refunds and safe transaction history. Core implementation and documentation are present. Clean migrations/seed and all final tests passed: **11 suites, 182 tests, 0 failures** (32 unit, 17 integration, 133 e2e). Full workspace build, final lint and compiled API/OpenAPI smoke checks passed. Persisted ledger conservation is zero. The completed phase is committed and delivered as GGvault-phase5-review.zip with all three Git reports. All 72 archive members were verified against committed source/report bytes. Final commit identity is in phase5-commit.txt. Authentication, funding and evidence storage architecture are retained.
+
+Phase 4 was delivered and approved; its source-only review remains available as GGvault-phase4-review.zip. Its original confirmed-vault-retention behavior is superseded by Phase 5 settlement. Public and admin frontends remain placeholders.
 
 ## Phase overview
 
@@ -16,6 +18,7 @@ Phase 4 implementation and validation are complete. The API supports funded matc
 | Phase 2 | Database and double-entry test-credit ledger | Existing foundation retained; regression tests pass | 17 ledger integration tests passed during Phase 3 validation |
 | Phase 3 | Identity, authentication, authorization, profiles, game accounts and challenge API | Complete; locally validated on 2026-09-29 | [Validation report](phase3-validation.md); no phase commit or review archive created |
 | Phase 4 | Match lifecycle, result verification, immutable evidence and timeline | Complete; validated on 2026-10-01 | Baseline a9e3209; [validation report](phase4-validation.md); source-only review delivered; commit identity in phase4-commit.txt |
+| Phase 5 | Dispute resolution and secure TEST credit settlement | Complete; validated on 2026-10-02 | Baseline cbb5b36; [validation report](phase5-validation.md); source-only review delivered; commit identity in phase5-commit.txt |
 
 ## Completed work
 
@@ -74,7 +77,7 @@ See [phase3-validation.md](phase3-validation.md) for suite names and details.
 | Phase 4 handover | Delivered | GGvault-phase4-review.zip; commit identity in phase4-commit.txt |
 | Future phase review delivery | Required at every phase completion | Commit, generate patch/stat/commit reports, create and inspect source-only ZIP |
 
-Real payments, withdrawals, TikTok, tournaments, external game APIs, moderator resolution, public settlement and final frontend UI remain outside Phase 4. No future phase has been started.
+Real payments, withdrawals, TikTok, tournaments, external game APIs, moderator resolution, public settlement and final frontend UI remain outside Phase 4. Phase 5 moderator resolution and test-credit settlement are implemented and validated. No Phase 6 work is authorized or started.
 
 ## Phase 4 validation
 
@@ -89,6 +92,15 @@ Clean PostgreSQL/Redis reset, Prisma generation, all three migrations and FC 26 
 - [x] Complete documentation and final commit.
 - [x] Generate Git reports and inspect source-only review archive (65 members; hashes match committed source and Git reports).
 
+## Phase 5 completion
+
+- [x] Extend the existing ledger primitive with atomic verified settlement and integer fee policy.
+- [x] Add moderator queue/detail/resolution, original-stake void refunds and safe transaction history.
+- [x] Add database financial-outcome uniqueness and audit context.
+- [x] Document settlement, dispute resolution, moderation and updated APIs.
+- [x] Finish final validation: 11 suites, 182 tests passed, zero failures; full build/lint and compiled smoke passed; ledger conservation zero.
+- [x] Commit Phase 5 and generate/verify source-only review delivery: 72 members, committed-source/report hashes match, forbidden paths excluded.
+
 ## Work log
 
 | Date | Work | Outcome |
@@ -102,6 +114,8 @@ Clean PostgreSQL/Redis reset, Prisma generation, all three migrations and FC 26 
 | 2026-09-29 | Start Phase 4 and commit the existing source baseline | Baseline a9e3209; match/evidence implementation started |
 | 2026-10-01 | Resume Phase 4; deploy clean schema and validate | All 137 tests pass; full workspace build, lint and API smoke checks pass |
 | 2026-10-01 | Commit Phase 4 and verify source-only handover | GGvault-phase4-review.zip and all three Git reports generated; forbidden paths excluded and all 65 member hashes verified |
+| 2026-10-02 | Implement Phase 5 from approved Phase 4 | Clean four-migration deployment and seed passed; all 182 tests, full build/lint and compiled API smoke passed; zero ledger conservation |
+| 2026-10-02 | Commit Phase 5 and deliver source-only review | GGvault-phase5-review.zip plus patch/stat/commit reports; all 72 archive members verified against the completed commit |
 
 ## Future phase record template
 

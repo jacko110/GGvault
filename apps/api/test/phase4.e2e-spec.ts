@@ -322,7 +322,7 @@ describe('Phase 4 real PostgreSQL match lifecycle and evidence', () => {
     await action('result/confirm').expect(403);
     await action('result/dispute', a, { reason: 'Wrong score' }).expect(403);
   });
-  async function assertLocked(status: 'CONFIRMED' | 'DISPUTED') {
+  async function assertOutcome(status: 'SETTLED' | 'DISPUTED') {
     expect(
       (await db.match.findUniqueOrThrow({ where: { id: matchId } })).status,
     ).toBe(status);
@@ -333,12 +333,12 @@ describe('Phase 4 real PostgreSQL match lifecycle and evidence', () => {
     expect(
       (await db.matchResult.findUniqueOrThrow({ where: { matchId } })).status,
     ).toBe(status);
-    expect((await ledger.getChallengeVault(challengeId)).balance).toBe(20);
-    expect((await ledger.getUserBalance(a.id)).balance).toBe(90);
+    expect((await ledger.getChallengeVault(challengeId)).balance).toBe(status === 'SETTLED' ? 0 : 20);
+    expect((await ledger.getUserBalance(a.id)).balance).toBe(status === 'SETTLED' ? 109 : 90);
     expect((await ledger.getUserBalance(b.id)).balance).toBe(90);
     expect(
       await db.ledgerTransaction.count({ where: { type: 'MATCH_SETTLEMENT' } }),
-    ).toBe(0);
+    ).toBe(status === 'SETTLED' ? 1 : 0);
     const entries = await db.ledgerEntry.findMany();
     expect(
       entries.reduce(
@@ -347,17 +347,17 @@ describe('Phase 4 real PostgreSQL match lifecycle and evidence', () => {
       ),
     ).toBe(0);
   }
-  it('opponent confirms all domain states without settlement', async () => {
+  it('opponent confirmation atomically settles all domain states (Phase 5)', async () => {
     await start();
     await submit().expect(201);
     await action('result/confirm', b).expect(200);
-    await assertLocked('CONFIRMED');
+    await assertOutcome('SETTLED');
     const result = await db.matchResult.findUniqueOrThrow({
       where: { matchId },
     });
     expect(result.confirmedByUserId).toBe(b.id);
     expect(result.confirmedAt).not.toBeNull();
-    await action('result/confirm', b).expect(409);
+    await action('result/confirm', b).expect(200);
     await submit().expect(409);
   });
   it('opponent disputes into review without payout and cannot duplicate dispute', async () => {
@@ -366,7 +366,7 @@ describe('Phase 4 real PostgreSQL match lifecycle and evidence', () => {
     await action('result/dispute', b, { reason: 'Score is incorrect' }).expect(
       200,
     );
-    await assertLocked('DISPUTED');
+    await assertOutcome('DISPUTED');
     const disputes = await db.dispute.findMany();
     expect(disputes).toHaveLength(1);
     expect(disputes[0].status).toBe('REVIEW');
@@ -382,8 +382,8 @@ describe('Phase 4 real PostgreSQL match lifecycle and evidence', () => {
       action('result/dispute', b, { reason: 'Incorrect score' }),
     ]);
     expect(res.map((r) => r.status).sort()).toEqual([200, 409]);
-    const status = res[0].status === 200 ? 'CONFIRMED' : 'DISPUTED';
-    await assertLocked(status);
+    const status = res[0].status === 200 ? 'SETTLED' : 'DISPUTED';
+    await assertOutcome(status);
     expect(await db.dispute.count()).toBe(status === 'DISPUTED' ? 1 : 0);
   });
   it.each(['confirm', 'dispute'])(
@@ -396,7 +396,7 @@ describe('Phase 4 real PostgreSQL match lifecycle and evidence', () => {
         action(`result/${verb}`, b, body),
         action(`result/${verb}`, b, body),
       ]);
-      expect(res.map((r) => r.status).sort()).toEqual([200, 409]);
+      expect(res.map((r) => r.status).sort()).toEqual(verb === 'confirm' ? [200, 200] : [200, 409]);
     },
   );
   it('stores immutable evidence metadata, SHA-256 and private bytes', async () => {
@@ -539,7 +539,7 @@ describe('Phase 4 real PostgreSQL match lifecycle and evidence', () => {
       where: { matchId },
       orderBy: { sequence: 'asc' },
     });
-    expect(events[events.length - 1].type).toBe('RESULT_DISPUTED');
+    expect(events[events.length - 1].type).toBe('DISPUTE_OPENED');
   });
   it('rejects externally tampered evidence rather than serving different bytes', async () => {
     await start();
@@ -572,6 +572,8 @@ describe('Phase 4 real PostgreSQL match lifecycle and evidence', () => {
       'EVIDENCE_UPLOADED',
       'RESULT_SUBMITTED',
       'RESULT_CONFIRMED',
+      'SETTLEMENT_STARTED',
+      'MATCH_SETTLED',
     ]);
     expect(
       events.every((e, i) => !i || e.sequence > events[i - 1].sequence),

@@ -44,3 +44,7 @@ Every ledger transaction uses a database-unique idempotency key. Retrying a legi
 Match.challengeId is unique for v0.1. MatchResult.matchId and Dispute.matchResultId are unique. Result records store submitter-relative scores and submission/confirmation identities and timestamps. A migration snapshots existing match participants and provisions a READY match for correctly funded two-player challenges that lack one.
 
 Evidence retains compatibility with earlier generic metadata but new match evidence includes a private object key, uploader, MIME, byte count and SHA-256. A trigger prevents updates/deletes once an object key is assigned. Uploaded bytes stay outside PostgreSQL. Match actions and evidence metadata use the same Serializable match-row transaction boundary; no Phase 4 migration changes ledger tables.
+
+## Phase 5 constraints
+
+Migration 20261001000003_phase5 adds resolution actor/reason/time, result monetary snapshots and REFUNDED/RESOLVED enum values. The partial unique ledger_transactions_one_match_outcome index prevents settlement and refund coexisting for one match; existing matchId/type uniqueness remains. Disputes have createdAt/id pagination index. Existing evidence immutability and match/challenge uniqueness are retained. No automatic migration pays existing confirmed matches.

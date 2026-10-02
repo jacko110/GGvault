@@ -21,3 +21,5 @@
 Profile DTOs allow displayName, bio, avatarUrl and countryCode. They cannot change roles, status, accounts, balances or trust fields. Responses use explicit selections and response DTOs rather than serializing Prisma users or sessions.
 
 Phase 4 match rooms, timelines and evidence are private to participants plus active MODERATOR/ADMIN readers. Only participants can ready, submit scores or upload evidence. Only the non-submitting opponent can confirm/dispute. Staff read permissions grant no action or financial permissions. Evidence requests also bind the evidence ID to the requested match.
+
+Phase 5: active MODERATOR/ADMIN may list/read disputes and choose one domain resolution with a reason; they cannot resolve a match they participate in. Only the original opposing participant may confirm/retry a confirmed score. Amounts, fee, winner account and status are server-controlled. USER cannot access moderation. GET /users/me/transactions is restricted to the current user.

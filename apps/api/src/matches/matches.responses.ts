@@ -11,30 +11,70 @@ export class DisputeResponse {
   @ApiProperty({ example: 'REVIEW' }) status!: string;
   @ApiProperty() raisedByUserId!: string;
   @ApiProperty() createdAt!: string;
+  @ApiProperty({ type: String, nullable: true }) resolution!: string | null;
+  @ApiProperty({ type: String, nullable: true }) resolutionReason!:
+    string | null;
+  @ApiProperty({ type: String, nullable: true }) resolvedByUserId!:
+    string | null;
+  @ApiProperty({ type: String, nullable: true }) resolvedAt!: string | null;
 }
 export class ResultResponse {
   @ApiProperty() id!: string;
-  @ApiProperty({ enum: ['PENDING', 'CONFIRMED', 'DISPUTED'] }) status!: string;
+  @ApiProperty({
+    enum: [
+      'PENDING',
+      'CONFIRMED',
+      'DISPUTED',
+      'RESOLVED',
+      'SETTLED',
+      'REFUNDED',
+    ],
+  })
+  status!: string;
   @ApiProperty() myScore!: number;
   @ApiProperty() opponentScore!: number;
   @ApiProperty({
     description:
-      'Proposed winner before confirmation; never triggers settlement.',
+      'Server-derived winner; null after a void. Original proposed scores remain recorded.',
+    nullable: true,
+    type: String,
   })
-  winnerUserId!: string;
+  winnerUserId!: string | null;
   @ApiProperty() submittedByUserId!: string;
   @ApiProperty() submittedAt!: string;
 }
 export class RoomResultResponse extends ResultResponse {
+  @ApiProperty({ type: Number, nullable: true }) vaultAmount!: number | null;
+  @ApiProperty({ type: Number, nullable: true }) winnerAmount!: number | null;
+  @ApiProperty({ type: Number, nullable: true }) platformFee!: number | null;
+  @ApiProperty({ type: String, nullable: true }) settledAt!: string | null;
   @ApiProperty({ type: String, nullable: true }) confirmedByUserId!:
     string | null;
   @ApiProperty({ type: String, nullable: true }) confirmedAt!: string | null;
   @ApiProperty({ type: [DisputeResponse] }) disputes!: DisputeResponse[];
 }
+export class SettlementWinnerResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty() username!: string;
+}
+export class SettlementResponse {
+  @ApiProperty() matchId!: string;
+  @ApiProperty({ enum: ['SETTLED', 'REFUNDED'] }) status!: string;
+  @ApiProperty({ type: SettlementWinnerResponse, nullable: true })
+  winner!: SettlementWinnerResponse | null;
+  @ApiProperty({ example: 20, nullable: true, type: Number }) vaultAmount!:
+    number | null;
+  @ApiProperty({ example: 19, nullable: true, type: Number }) winnerAmount!:
+    number | null;
+  @ApiProperty({ example: 1, nullable: true, type: Number }) platformFee!:
+    number | null;
+}
 export class DecisionResponse {
   @ApiProperty() matchId!: string;
   @ApiProperty() resultId!: string;
-  @ApiProperty({ enum: ['CONFIRMED', 'DISPUTED'] }) status!: string;
+  @ApiProperty({ enum: ['SETTLED', 'DISPUTED'] }) status!: string;
+  @ApiProperty({ type: SettlementResponse, nullable: true })
+  settlement!: SettlementResponse | null;
 }
 export class EvidenceResponse {
   @ApiProperty() id!: string;
@@ -58,7 +98,7 @@ class ParticipantName {
   @ApiProperty() username!: string;
   @ApiProperty({ type: String, nullable: true }) displayName!: string | null;
 }
-class MatchParticipantResponse {
+export class MatchParticipantResponse {
   @ApiProperty() userId!: string;
   @ApiProperty({ type: String, nullable: true }) readyAt!: string | null;
   @ApiProperty({ type: ParticipantName }) user!: ParticipantName;
@@ -67,19 +107,22 @@ class GameResponse {
   @ApiProperty() id!: string;
   @ApiProperty() name!: string;
 }
-class MatchChallengeResponse {
+export class MatchChallengeResponse {
   @ApiProperty() id!: string;
   @ApiProperty() status!: string;
   @ApiProperty() platform!: string;
   @ApiProperty() stakeAmount!: number;
   @ApiProperty() currency!: string;
+  @ApiProperty() createdByUserId!: string;
   @ApiProperty({ type: GameResponse }) game!: GameResponse;
 }
 class VaultResponse {
   @ApiProperty() balance!: number;
-  @ApiProperty({ enum: ['LOCKED'] }) status!: string;
+  @ApiProperty({ enum: ['LOCKED', 'SETTLED', 'REFUNDED'] }) status!: string;
 }
 export class MatchRoomResponse {
+  @ApiProperty({ type: SettlementResponse, nullable: true })
+  settlement!: SettlementResponse | null;
   @ApiProperty() id!: string;
   @ApiProperty() challengeId!: string;
   @ApiProperty() status!: string;

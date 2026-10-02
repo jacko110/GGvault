@@ -1,9 +1,10 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { LedgerService } from './ledger.service';
 import { CurrentUser, Identity } from '../auth/auth.guard';
 import { fail } from '../common/domain';
 import { PrismaService } from '../database/prisma.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiResponse } from '@nestjs/swagger';
+import { TransactionQuery, TransactionPageResponse } from './transactions.dto';
 
 @Controller()
 @ApiTags('Ledger')
@@ -13,6 +14,15 @@ export class LedgerController {
     private readonly ledgerService: LedgerService,
     private readonly db: PrismaService,
   ) {}
+
+  @Get('users/me/transactions')
+  @ApiResponse({ status: 200, type: TransactionPageResponse })
+  transactions(
+    @CurrentUser() actor: Identity,
+    @Query() query: TransactionQuery,
+  ) {
+    return this.ledgerService.history(actor.sub, query.cursor, query.limit);
+  }
 
   @Get('users/:userId/balance')
   getUserBalance(

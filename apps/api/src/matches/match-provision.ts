@@ -6,9 +6,20 @@ export async function matchEvent(
   matchId: string,
   type: string,
   actorUserId: string | null,
+  metadata?: Prisma.InputJsonObject,
 ) {
   await tx.matchEvent.create({ data: { matchId, type, actorUserId } });
-  await audit(tx, actorUserId, type, 'Match', matchId);
+  if (metadata) {
+    await tx.auditLog.create({
+      data: {
+        userId: actorUserId,
+        action: type,
+        entity: 'Match',
+        entityId: matchId,
+        metadata,
+      },
+    });
+  } else await audit(tx, actorUserId, type, 'Match', matchId);
 }
 
 // Runs in the caller's funding transaction. Unique challengeId is the final duplicate barrier.

@@ -42,6 +42,7 @@ enum MatchStatus {
   DISPUTED
   SETTLED
   CANCELLED
+  REFUNDED
 }
 
 enum LedgerDirection {
@@ -71,6 +72,14 @@ enum SettlementStatus {
   SETTLED
   DISPUTED
   CANCELLED
+  RESOLVED
+  REFUNDED
+}
+
+enum DisputeResolution {
+  PLAYER_A_WINS
+  PLAYER_B_WINS
+  VOID_MATCH
 }
 
 enum DisputeStatus {
@@ -270,6 +279,11 @@ model MatchResult {
   submittedAt DateTime?
   confirmedByUserId String?
   confirmedAt DateTime?
+  vaultAmount Int?
+  winnerAmount Int?
+  platformFee Int?
+  feeBasisPoints Int?
+  settledAt DateTime?
   status       SettlementStatus @default(PENDING)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -350,12 +364,17 @@ model Dispute {
   raisedByUserId String
   reason        String
   status        DisputeStatus @default(OPEN)
+  resolvedByUserId String?
+  resolution DisputeResolution?
+  resolutionReason String?
+  resolvedAt DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   matchResult   MatchResult  @relation(fields: [matchResultId], references: [id], onDelete: Cascade)
   user          User         @relation(fields: [raisedByUserId], references: [id], onDelete: Cascade)
 
   @@map("disputes")
+  @@index([createdAt, id])
 }
 
 model AuditLog {

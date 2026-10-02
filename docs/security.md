@@ -1,4 +1,4 @@
-# Security and validation through Phase 4
+# Security and validation through Phase 5
 
 Passwords are Argon2id hashes; refresh tokens are hashed random secrets. JWT secrets are mandatory configuration. Passwords, hashes and tokens are excluded from audit events and user responses. Framework validation suppresses target objects and submitted values in exceptions. Unhandled errors return a generic 500 without Prisma errors or stack traces.
 
@@ -25,18 +25,22 @@ npm run test:integration
 npm run test:e2e
 ```
 
-The root test commands load `.env` and supply a test-only JWT secret if one is absent. They do not disable tests, mock the database, or mock the ledger. Node 22.9+ is required by the environment-loading scripts. Test categories run serially to avoid concurrent database truncation.
+The root test commands load `.env` and supply a test-only JWT secret if one is absent. They do not disable tests or mock the database. Financial assertions use the real ledger; rollback tests inject a failure only after the real primitive has written inside its transaction. Node 22.9+ is required by the environment-loading scripts. Test categories run serially to avoid concurrent database truncation.
 
-Deployment needs a TLS terminator, deliberately configured proxy trust, secrets management, Redis/PostgreSQL isolation and audit retention policy. Email verification, password reset, refresh-session management UI and automatic challenge expiration remain future workflows. Phase 4 adds results and disputes, but no real payments, withdrawals, public settlement, moderator resolution, tournaments or external game integrations.
+Deployment needs a TLS terminator, deliberately configured proxy trust, secrets management, Redis/PostgreSQL isolation and audit retention policy. Email verification, password reset, refresh-session management UI and automatic challenge expiration remain future workflows. Phase 5 adds automatic verified test-credit settlement and moderator resolution, but no real payments, withdrawals, player settlement endpoint, tournaments or external game integrations.
 
 ## Phase 4 match and evidence boundaries
 
 Match rooms, timelines and evidence reads are private to participants and active moderators/admins. Match actions and evidence upload require actual participation; staff roles do not confer impersonation rights. Scores derive the proposed winner on the server. The submitting player cannot confirm or dispute their own result. A unique match-per-challenge index, unique result-per-match index, unique dispute-per-result index and Serializable retries protect concurrent actions.
 
-All match mutations touch the same match row. Confirmation/dispute races produce one winner, and evidence cannot commit after a terminal decision. Every upload records a safe timeline event and a private audit entry atomically with metadata. No Phase 4 action invokes settlement. Tests verify vault retention and global conservation after both outcomes.
+All match mutations touch the same match row. Confirmation/dispute races produce one winner, and evidence cannot commit after a terminal decision. Every upload records a safe timeline event and a private audit entry atomically with metadata. Phase 5 confirmation settles atomically through LedgerService; disputes retain the vault until moderator resolution. Tests verify exact financial outcomes and global conservation.
 
 Uploaded files are size-bounded, checked against MIME/extension/content markers, and stored outside public assets under random server IDs. PostgreSQL holds metadata and SHA-256 only. Download checks authorization, match ownership and integrity before serving an attachment with no-sniff/no-store headers. A database trigger prevents changes or deletion of committed evidence. There is no evidence update/delete API. See [evidence.md](evidence.md) for memory bounds, configuration, orphan reconciliation and the limits of header validation.
 
 ## Dependency audit limitation
 
 The September 29, 2026 full-workspace audit flagged existing Next.js 14.2.15 and NestJS/tooling dependencies. In particular Next.js has critical advisories, including GHSA-p293-qw3h-jr36 and GHSA-2xp9-vwfh-vxw4. Passing Phase 3 tests does not make these versions suitable for public deployment. A separate framework dependency upgrade is still required. Phase 3 upgrades the directly used class-validator from 0.13 to 0.15.1, removing its GHSA-fj58-h2fr-3pp2 advisory; no force-upgrade of the application frameworks was performed.
+
+## Phase 5 settlement and moderation
+
+Phase 5 supersedes the prior no-settlement boundary. Confirmation, moderator resolution and posting run in Serializable transactions, with same-match writes and database uniqueness across settlement/refund outcomes. Clients cannot supply monetary amounts or winner accounts. SettlementPolicy validates startup configuration. MODERATOR/ADMIN permissions are rechecked; participants cannot adjudicate their own match. Raw ledger editing is not exposed. Safe audit fields and private/no-store moderation responses avoid unrelated private data. Evidence remains protected and immutable. Existing dependency advisory and deployment limitations above remain open. See [settlement.md](settlement.md) and [moderation.md](moderation.md).

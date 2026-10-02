@@ -8,7 +8,7 @@ import { EvidenceStorage } from './evidence.storage';
 import { EvidencePolicy, EvidenceUpload } from './evidence.policy';
 import { matchEvent } from './match-provision';
 
-const evidenceSelect = {
+export const evidenceSelect = {
   id: true,
   matchId: true,
   uploadedByUserId: true,

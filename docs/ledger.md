@@ -61,3 +61,7 @@ Settlement transfers the challenge vault to the winner and the configured platfo
 - each transaction is balanced
 - repeated idempotency keys do not create a duplicate transaction
 - settlement cannot be processed twice for the same match
+
+## Phase 5 outcomes
+
+The existing settleMatch primitive accepts the caller transaction, validates a verified outcome and updates result/match/challenge atomically. SettlementPolicy replaces the old fixed one-credit fee with configurable integer basis points and floor rounding. Zero-valued fee/prize entries are omitted. A partial unique index allows at most one MATCH_SETTLEMENT or STAKE_REFUND per match, supplementing (matchId, type). refundMatch reconstructs original stake ownership/amounts from STAKE_LOCK entries and creates one balanced transaction with two user credits. See [settlement.md](settlement.md) for exact invariants, history and retry behavior.

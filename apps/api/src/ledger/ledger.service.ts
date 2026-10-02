@@ -12,6 +12,8 @@ import {
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from '../database/prisma.service';
+import { SettlementPolicy } from './settlement.policy';
+import { matchEvent } from '../matches/match-provision';
 
 interface CreateInitialCreditInput {
   userId: string;
@@ -30,11 +32,15 @@ interface SettleMatchInput {
   matchId: string;
   winnerUserId: string;
   idempotencyKey: string;
+  actorUserId?: string;
 }
 
 @Injectable()
 export class LedgerService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly policy: SettlementPolicy = new SettlementPolicy(),
+  ) {}
 
   private async runSerializableTransaction<T>(
     fn: (tx: Prisma.TransactionClient) => Promise<T>,
@@ -389,15 +395,34 @@ export class LedgerService {
     }
   }
 
-  async settleMatch(input: SettleMatchInput) {
+  async settleMatch(
+    input: SettleMatchInput,
+    transactionClient?: Prisma.TransactionClient,
+  ) {
     try {
-      return await this.runSerializableTransaction(async (tx) => {
+      return await this.withTransaction(transactionClient, async (tx) => {
+        const match = await tx.match.findUnique({
+          where: { id: input.matchId },
+          include: { challenge: { include: { players: true } } },
+        });
+        if (!match) throw new NotFoundException('Match not found');
+        await tx.match.update({
+          where: { id: match.id },
+          data: { updatedAt: new Date() },
+        });
         const existing = await tx.ledgerTransaction.findUnique({
-          where: { idempotencyKey: input.idempotencyKey },
+          where: {
+            matchId_type: { matchId: input.matchId, type: 'MATCH_SETTLEMENT' },
+          },
           include: { entries: true },
         });
 
         if (existing) {
+          const result = await tx.matchResult.findUniqueOrThrow({
+            where: { matchId: input.matchId },
+          });
+          if (result.winnerUserId !== input.winnerUserId)
+            throw new ConflictException('Settlement winner cannot change');
           return existing;
         }
 
@@ -410,19 +435,26 @@ export class LedgerService {
           );
         }
 
-        if (matchResult.status === 'SETTLED') {
-          throw new ConflictException(
-            'Settlement already processed for this match',
-          );
-        }
-
-        const match = await tx.match.findUnique({
-          where: { id: input.matchId },
-          include: { challenge: true },
+        const dispute = await tx.dispute.findUnique({
+          where: { matchResultId: matchResult.id },
         });
-        if (!match) {
-          throw new NotFoundException(`Match ${input.matchId} not found`);
-        }
+        const confirmed =
+          matchResult.status === 'CONFIRMED' &&
+          match.status === 'CONFIRMED' &&
+          !dispute;
+        const resolved =
+          matchResult.status === 'RESOLVED' &&
+          match.status === 'DISPUTED' &&
+          dispute?.status === 'RESOLVED' &&
+          ['PLAYER_A_WINS', 'PLAYER_B_WINS'].includes(dispute.resolution ?? '');
+        if (
+          (!confirmed && !resolved) ||
+          matchResult.winnerUserId !== input.winnerUserId ||
+          match.challenge.currency !== 'TEST' ||
+          match.challenge.players.length !== 2 ||
+          !match.challenge.players.some((p) => p.userId === input.winnerUserId)
+        )
+          throw new ConflictException('Match has no verified payable outcome');
 
         const vaultAccount = await this.getChallengeVaultAccount(
           tx,
@@ -435,8 +467,11 @@ export class LedgerService {
         const platformAccount = await this.getPlatformRevenueAccount(tx);
 
         const vaultBalance = await this.getAccountBalance(tx, vaultAccount.id);
-        const platformFee = vaultBalance > 0 ? 1 : 0;
-        const winnerPayout = vaultBalance - platformFee;
+        const {
+          platformFee,
+          winnerAmount: winnerPayout,
+          feeBasisPoints,
+        } = this.policy.calculate(vaultBalance);
 
         if (vaultBalance <= 0 || winnerPayout < 0) {
           throw new BadRequestException(
@@ -444,6 +479,20 @@ export class LedgerService {
           );
         }
 
+        const context = {
+          matchId: match.id,
+          challengeId: match.challengeId,
+          ...(dispute
+            ? { disputeId: dispute.id, resolution: dispute.resolution! }
+            : {}),
+        };
+        await matchEvent(
+          tx,
+          match.id,
+          'SETTLEMENT_STARTED',
+          input.actorUserId ?? null,
+          context,
+        );
         const transaction = await tx.ledgerTransaction.create({
           data: {
             matchId: input.matchId,
@@ -470,7 +519,7 @@ export class LedgerService {
                   amount: platformFee,
                   description: 'Platform fee',
                 },
-              ],
+              ].filter((entry) => entry.amount > 0),
             },
           },
           include: { entries: true },
@@ -481,13 +530,33 @@ export class LedgerService {
           data: {
             winnerUserId: input.winnerUserId,
             status: 'SETTLED',
+            vaultAmount: vaultBalance,
+            winnerAmount: winnerPayout,
+            platformFee,
+            feeBasisPoints,
+            settledAt: new Date(),
           },
         });
-
+        await tx.match.update({
+          where: { id: match.id },
+          data: { status: 'SETTLED' },
+        });
+        await tx.challenge.update({
+          where: { id: match.challengeId },
+          data: { status: 'SETTLED' },
+        });
+        await matchEvent(
+          tx,
+          match.id,
+          'MATCH_SETTLED',
+          input.actorUserId ?? null,
+          context,
+        );
         return transaction;
       });
     } catch (error) {
       if (
+        !transactionClient &&
         error instanceof PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
@@ -503,12 +572,147 @@ export class LedgerService {
         });
 
         if (existingByMatch) {
+          const result = await this.prisma.matchResult.findUniqueOrThrow({
+            where: { matchId: input.matchId },
+          });
+          if (result.winnerUserId !== input.winnerUserId)
+            throw new ConflictException('Settlement winner cannot change');
           return existingByMatch;
         }
       }
 
       throw error;
     }
+  }
+
+  async refundMatch(
+    input: { matchId: string; actorUserId?: string },
+    transactionClient?: Prisma.TransactionClient,
+  ) {
+    return this.withTransaction(transactionClient, async (tx) => {
+      const match = await tx.match.findUnique({
+        where: { id: input.matchId },
+        include: {
+          challenge: { include: { players: true } },
+          results: { include: { disputes: true } },
+        },
+      });
+      if (!match) throw new NotFoundException('Match not found');
+      await tx.match.update({
+        where: { id: match.id },
+        data: { updatedAt: new Date() },
+      });
+      const existing = await tx.ledgerTransaction.findUnique({
+        where: { matchId_type: { matchId: match.id, type: 'STAKE_REFUND' } },
+        include: { entries: true },
+      });
+      if (existing) return existing;
+      const result = match.results[0],
+        dispute = result?.disputes[0];
+      if (
+        match.status !== 'DISPUTED' ||
+        result?.status !== 'RESOLVED' ||
+        dispute?.status !== 'RESOLVED' ||
+        dispute.resolution !== 'VOID_MATCH' ||
+        match.challenge.currency !== 'TEST'
+      )
+        throw new ConflictException('Match has no verified void outcome');
+      const vault = await this.getChallengeVaultAccount(tx, match.challengeId);
+      const locks = await tx.ledgerTransaction.findMany({
+        where: {
+          type: 'STAKE_LOCK',
+          entries: { some: { ledgerAccountId: vault.id, direction: 'CREDIT' } },
+        },
+        include: { entries: { include: { ledgerAccount: true } } },
+      });
+      const refunds = new Map<string, number>();
+      for (const lock of locks) {
+        const credits = lock.entries
+          .filter(
+            (e) => e.ledgerAccountId === vault.id && e.direction === 'CREDIT',
+          )
+          .reduce((s, e) => s + e.amount, 0);
+        const debits = lock.entries.filter(
+          (e) =>
+            e.direction === 'DEBIT' &&
+            e.ledgerAccount.accountType === 'USER_AVAILABLE',
+        );
+        if (
+          debits.length !== 1 ||
+          debits[0].amount !== credits ||
+          !match.challenge.players.some(
+            (p) => p.userId === debits[0].ledgerAccount.userId,
+          )
+        )
+          throw new ConflictException('Invalid original stake accounting');
+        refunds.set(
+          debits[0].ledgerAccountId,
+          (refunds.get(debits[0].ledgerAccountId) ?? 0) + credits,
+        );
+      }
+      const total = [...refunds.values()].reduce((s, n) => s + n, 0);
+      if (
+        refunds.size !== 2 ||
+        total <= 0 ||
+        (await this.getAccountBalance(tx, vault.id)) !== total
+      )
+        throw new ConflictException('Vault does not match original stakes');
+      const transaction = await tx.ledgerTransaction.create({
+        data: {
+          matchId: match.id,
+          type: 'STAKE_REFUND',
+          idempotencyKey: `match-refund:${match.id}`,
+          description: 'Voided match stake refunds',
+          entries: {
+            create: [
+              {
+                ledgerAccountId: vault.id,
+                direction: LedgerDirection.DEBIT,
+                amount: total,
+              },
+              ...[...refunds].map(([ledgerAccountId, amount]) => ({
+                ledgerAccountId,
+                direction: LedgerDirection.CREDIT,
+                amount,
+              })),
+            ],
+          },
+        },
+        include: { entries: true },
+      });
+      await tx.matchResult.update({
+        where: { id: result.id },
+        data: {
+          status: 'REFUNDED',
+          winnerUserId: null,
+          vaultAmount: total,
+          winnerAmount: 0,
+          platformFee: 0,
+          settledAt: new Date(),
+        },
+      });
+      await tx.match.update({
+        where: { id: match.id },
+        data: { status: 'REFUNDED' },
+      });
+      await tx.challenge.update({
+        where: { id: match.challengeId },
+        data: { status: 'REFUNDED' },
+      });
+      await matchEvent(
+        tx,
+        match.id,
+        'MATCH_REFUNDED',
+        input.actorUserId ?? null,
+        {
+          matchId: match.id,
+          challengeId: match.challengeId,
+          disputeId: dispute.id,
+          resolution: 'VOID_MATCH',
+        },
+      );
+      return transaction;
+    });
   }
 
   async getUserBalance(userId: string) {
@@ -538,6 +742,66 @@ export class LedgerService {
     );
 
     return { userId, balance };
+  }
+
+  async history(userId: string, cursor?: string, limit = 20) {
+    const where: Prisma.LedgerEntryWhereInput = {
+      ledgerAccount: { userId, accountType: 'USER_AVAILABLE' },
+    };
+    const anchor = cursor
+      ? await this.prisma.ledgerEntry.findFirst({
+          where: { ...where, id: cursor },
+        })
+      : null;
+    if (cursor && !anchor)
+      throw new BadRequestException('Invalid transaction cursor');
+    const rows = await this.prisma.ledgerEntry.findMany({
+      where: {
+        ...where,
+        ...(anchor
+          ? {
+              OR: [
+                { createdAt: { lt: anchor.createdAt } },
+                { createdAt: anchor.createdAt, id: { lt: anchor.id } },
+              ],
+            }
+          : {}),
+      },
+      include: {
+        transaction: {
+          include: { entries: { include: { ledgerAccount: true } } },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+    return {
+      items: rows.slice(0, limit).map((e) => {
+        const type =
+          e.transaction.type === 'MATCH_SETTLEMENT'
+            ? 'MATCH_WIN'
+            : e.transaction.type;
+        const descriptions: Record<string, string> = {
+          INITIAL_CREDIT: 'Initial non-withdrawable test credits',
+          STAKE_LOCK: 'Challenge stake locked',
+          MATCH_WIN: 'Match prize',
+          STAKE_REFUND: 'Voided match stake returned',
+        };
+        return {
+          id: e.id,
+          timestamp: e.createdAt,
+          type,
+          amount: e.direction === 'CREDIT' ? e.amount : -e.amount,
+          challengeId:
+            e.transaction.entries.find(
+              (x) => x.ledgerAccount.accountType === 'MATCH_VAULT',
+            )?.ledgerAccount.challengeId ?? null,
+          matchId: e.transaction.matchId,
+          description: descriptions[type] ?? 'Test credit transaction',
+        };
+      }),
+      nextCursor: rows.length > limit ? rows[limit - 1].id : null,
+    };
   }
 
   async getUserLedger(userId: string) {

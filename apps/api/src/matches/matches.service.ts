@@ -5,8 +5,9 @@ import { fail, serializable } from '../common/domain';
 import { PrismaService } from '../database/prisma.service';
 import { matchEvent } from './match-provision';
 import { ResultDto } from './matches.dto';
+import { LedgerService } from '../ledger/ledger.service';
 
-const matchSelect = {
+export const matchSelect = {
   id: true,
   challengeId: true,
   status: true,
@@ -27,6 +28,7 @@ const matchSelect = {
       platform: true,
       entryFee: true,
       currency: true,
+      createdByUserId: true,
       game: { select: { id: true, name: true } },
     },
   },
@@ -41,6 +43,11 @@ const matchSelect = {
       submittedAt: true,
       confirmedByUserId: true,
       confirmedAt: true,
+      vaultAmount: true,
+      winnerAmount: true,
+      platformFee: true,
+      settledAt: true,
+      winner: { select: { id: true, username: true } },
       disputes: {
         select: {
           id: true,
@@ -48,6 +55,10 @@ const matchSelect = {
           status: true,
           raisedByUserId: true,
           createdAt: true,
+          resolution: true,
+          resolutionReason: true,
+          resolvedByUserId: true,
+          resolvedAt: true,
         },
       },
     },
@@ -56,7 +67,10 @@ const matchSelect = {
 
 @Injectable()
 export class MatchesService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly ledger: LedgerService,
+  ) {}
 
   async access(
     tx: Prisma.TransactionClient,
@@ -115,8 +129,11 @@ export class MatchesService {
                 sum + (e.direction === 'CREDIT' ? e.amount : -e.amount),
               0,
             ) ?? 0,
-          status: 'LOCKED',
+          status: ['SETTLED', 'REFUNDED'].includes(match.status)
+            ? match.status
+            : 'LOCKED',
         },
+        settlement: settlementView(match),
       };
     });
   }
@@ -233,19 +250,60 @@ export class MatchesService {
           'RESULT_SELF_DECISION',
           'Only the non-submitting opponent can decide.',
         );
+      if (
+        reason === undefined &&
+        match.status === 'SETTLED' &&
+        result.confirmedByUserId === actor.sub &&
+        !result.disputes.length
+      )
+        return {
+          matchId: id,
+          resultId: result.id,
+          status: 'SETTLED',
+          settlement: settlementView(match),
+        };
+      // Resume an approved Phase 4 confirmation without inventing a new player-facing settlement action.
+      if (
+        reason === undefined &&
+        match.status === 'CONFIRMED' &&
+        result.status === 'CONFIRMED' &&
+        result.confirmedByUserId === actor.sub &&
+        !result.disputes.length
+      ) {
+        await this.ledger.settleMatch(
+          {
+            matchId: id,
+            winnerUserId: result.winnerUserId!,
+            idempotencyKey: `match-settlement:${id}`,
+            actorUserId: actor.sub,
+          },
+          tx,
+        );
+        const final = await tx.match.findUniqueOrThrow({
+          where: { id },
+          select: matchSelect,
+        });
+        return {
+          matchId: id,
+          resultId: result.id,
+          status: 'SETTLED',
+          settlement: settlementView(final),
+        };
+      }
       if (match.status !== 'RESULT_SUBMITTED' || result.status !== 'PENDING')
         fail(409, 'RESULT_FINALIZED', 'Result has already been decided.');
       const disputed = reason !== undefined;
       const status = disputed ? 'DISPUTED' : 'CONFIRMED';
-      if (disputed)
-        await tx.dispute.create({
-          data: {
-            matchResultId: result.id,
-            raisedByUserId: actor.sub,
-            reason,
-            status: 'REVIEW',
-          },
-        });
+      const dispute = disputed
+        ? await tx.dispute.create({
+            data: {
+              matchResultId: result.id,
+              raisedByUserId: actor.sub,
+              reason,
+              status: 'REVIEW',
+            },
+          })
+        : null;
       await tx.matchResult.update({
         where: { id: result.id },
         data: {
@@ -265,8 +323,40 @@ export class MatchesService {
         id,
         disputed ? 'RESULT_DISPUTED' : 'RESULT_CONFIRMED',
         actor.sub,
+        {
+          matchId: id,
+          challengeId: match.challengeId,
+          ...(dispute ? { disputeId: dispute.id } : {}),
+        },
       );
-      return { matchId: id, resultId: result.id, status };
+      if (dispute)
+        await matchEvent(tx, id, 'DISPUTE_OPENED', actor.sub, {
+          matchId: id,
+          challengeId: match.challengeId,
+          disputeId: dispute.id,
+        });
+      if (!disputed) {
+        await this.ledger.settleMatch(
+          {
+            matchId: id,
+            winnerUserId: result.winnerUserId!,
+            idempotencyKey: `match-settlement:${id}`,
+            actorUserId: actor.sub,
+          },
+          tx,
+        );
+        const final = await tx.match.findUniqueOrThrow({
+          where: { id },
+          select: matchSelect,
+        });
+        return {
+          matchId: id,
+          resultId: result.id,
+          status: 'SETTLED',
+          settlement: settlementView(final),
+        };
+      }
+      return { matchId: id, resultId: result.id, status, settlement: null };
     });
   }
 
@@ -286,4 +376,19 @@ export class MatchesService {
       });
     });
   }
+}
+
+export function settlementView(
+  match: Prisma.MatchGetPayload<{ select: typeof matchSelect }>,
+) {
+  const result = match.results[0];
+  if (!result || !['SETTLED', 'REFUNDED'].includes(result.status)) return null;
+  return {
+    matchId: match.id,
+    status: result.status,
+    winner: result.winner,
+    vaultAmount: result.vaultAmount,
+    winnerAmount: result.winnerAmount,
+    platformFee: result.platformFee,
+  };
 }

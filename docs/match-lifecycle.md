@@ -1,6 +1,6 @@
-# Phase 4 match lifecycle
+# Match lifecycle through Phase 5
 
-Phase 4 starts at a funded two-player challenge and ends at a confirmed or disputed result. Credits remain in the vault throughout. All endpoints require a live authenticated session.
+The lifecycle starts at a funded two-player challenge and ends in SETTLED or REFUNDED. Disputed credits remain locked until moderator resolution. All endpoints require a live authenticated session.
 
 ## Creation and readiness
 
@@ -10,14 +10,14 @@ The match initially has status READY. Each `MatchParticipant` stores its own `re
 
 ## Private room and timeline
 
-GET `/matches/:id` returns match state, participant names and readiness, challenge/game/platform/stake, vault balance and result/dispute state. Access is limited to participants and active MODERATOR/ADMIN accounts. Staff read access grants no permission to ready, submit, decide or upload for another player. Passwords, emails, sessions, risk fields and audit records are excluded.
+GET `/matches/:id` returns match state, participant names and readiness, challenge/game/platform/stake, vault balance, result/dispute state and safe settlement details (winner, prize and platform fee). Submitted scores remain attributed to their submitter. Access is limited to participants and active MODERATOR/ADMIN accounts. Staff read access grants no permission to ready, submit, decide or upload for another player. Passwords, emails, sessions, risk fields and audit records are excluded.
 
-GET `/matches/:id/timeline` has the same read policy and returns safe events ordered by database sequence. Events are MATCH_CREATED, PLAYER_READY, MATCH_STARTED, RESULT_SUBMITTED, RESULT_CONFIRMED, RESULT_DISPUTED and EVIDENCE_UPLOADED. Sequence values are monotonic but can have gaps after transaction rollbacks. All mutation paths touch the match row, so same-match events cannot be reordered by competing commits. Audit records are separate from the room timeline.
+GET `/matches/:id/timeline` has the same read policy and returns safe events ordered by database sequence. Events are MATCH_CREATED, PLAYER_READY, MATCH_STARTED, RESULT_SUBMITTED, RESULT_CONFIRMED, RESULT_DISPUTED, EVIDENCE_UPLOADED, DISPUTE_OPENED, DISPUTE_REVIEWED, DISPUTE_RESOLVED, SETTLEMENT_STARTED, MATCH_SETTLED and MATCH_REFUNDED. Sequence values are monotonic but can have gaps after transaction rollbacks. All mutation paths touch the match row, so same-match events cannot be reordered by competing commits. Audit records are separate from the room timeline.
 
 ## Concurrency and finance
 
 Database uniqueness and Serializable retry protect match creation, readiness, result submission and decisions. Each match mutation writes the shared match row before changing related state. This serializes upload/decision races as well as confirmation/dispute races.
 
-Neither MatchesService nor EvidenceService calls `LedgerService.settleMatch()`. Match creation is a domain extension to the existing challenge funding transaction; the ledger implementation and accounting schema are unchanged in Phase 4. After either CONFIRMED or DISPUTED, a challenge funded with two 10-credit stakes still has 20 in its vault.
+MatchesService calls the existing LedgerService settlement primitive inside confirmation. Moderator resolution calls settlement or refund inside its transaction. With default fees, confirmation pays a 20-credit vault as 19 to the winner and 1 to the platform. Disputes retain the vault until resolution; a void returns the original stakes. EvidenceService performs no financial operations. See [settlement.md](settlement.md).
 
 Swagger UI is `/docs` and OpenAPI JSON is `/docs-json`. See [result verification](result-verification.md) and [evidence](evidence.md) for request details.

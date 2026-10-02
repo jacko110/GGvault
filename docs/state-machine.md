@@ -1,4 +1,4 @@
-# Challenge and match state machines (through Phase 4)
+# Challenge and match state machines (through Phase 5)
 
 | Current state | Action | Required conditions | New state |
 | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ All mutating actions use Serializable PostgreSQL transactions. Simultaneous join
 
 Expiration remains an internal domain action with no scheduler or public status-editing route.
 
-## Phase 4
+## Match lifecycle through Phase 5
 
 | Match state | Action | Required conditions | New match / challenge / result states |
 | --- | --- | --- | --- |
@@ -22,9 +22,14 @@ Expiration remains an internal domain action with no scheduler or public status-
 | READY | First ready | Participant; readyAt not set | READY / FUNDED / no result |
 | READY | Second ready | Both participants ready | IN_PROGRESS / IN_PROGRESS / no result |
 | IN_PROGRESS | Submit score | Participant; valid non-draw scores; no prior result | RESULT_SUBMITTED / RESULT_SUBMITTED / PENDING |
-| RESULT_SUBMITTED | Confirm | Non-submitting opponent only | CONFIRMED / CONFIRMED / CONFIRMED |
+| RESULT_SUBMITTED | Confirm | Non-submitting opponent only | CONFIRMED then SETTLED for all three, atomically |
 | RESULT_SUBMITTED | Dispute | Non-submitting opponent; reason required | DISPUTED / DISPUTED / DISPUTED; Dispute REVIEW |
 
-Ready retries are idempotent. Result submissions and decisions reject duplicates. Confirmation and dispute are mutually exclusive terminal Phase 4 outcomes. Evidence is immutable immediately after upload; the submitter's uploads close at submission and all uploads close after either terminal decision. Uploads and decisions share the match's transaction serialization boundary.
+Ready and confirmed-settlement retries are idempotent. Duplicate submissions/disputes and moderator resolutions reject with 409. Confirmation and dispute are mutually exclusive decisions. Evidence is immutable immediately after upload; the submitter's uploads close at submission and all uploads close after either terminal decision. Uploads and decisions share the match's transaction serialization boundary.
 
-Both terminal outcomes retain the vault balance (20 for two 10-credit stakes). No public payout, settlement, moderator resolution, OCR or arbitrary status PATCH is implemented. Later-phase enum values remain solely for existing internal compatibility.
+| Disputed state | Moderator action | Final state |
+| --- | --- | --- |
+| DISPUTED; Dispute REVIEW (under review) | PLAYER_A_WINS / PLAYER_B_WINS | Dispute RESOLVED; result RESOLVED then result/match/challenge SETTLED atomically |
+| DISPUTED; Dispute REVIEW | VOID_MATCH | Dispute RESOLVED; result RESOLVED then result/match/challenge REFUNDED atomically |
+
+Disputes retain 20 locked credits until resolution. Settlement pays 19/1 with the default policy; void refunds 10/10. Intermediate CONFIRMED/RESOLVED states are inside the transaction and are not left committed on failure. No arbitrary status PATCH or player settlement route exists. Evidence remains closed after either decision.

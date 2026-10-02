@@ -258,8 +258,8 @@ describe('GGVault ledger integration (Postgres)', () => {
     await ledgerService.lockStake({ userId: winner.id, challengeId: challenge.id, amount: 10, idempotencyKey: 'stake-11w' });
     await ledgerService.lockStake({ userId: loser.id, challengeId: challenge.id, amount: 10, idempotencyKey: 'stake-11l' });
 
-    const match = await prisma.match.create({ data: { challengeId: challenge.id } });
-    await prisma.matchResult.create({ data: { matchId: match.id, status: 'PENDING' } });
+    const match = await prisma.match.create({ data: { challengeId: challenge.id, status: 'CONFIRMED' } });
+    await prisma.matchResult.create({ data: { matchId: match.id, status: 'CONFIRMED', winnerUserId: winner.id } });
 
     await ledgerService.settleMatch({ matchId: match.id, winnerUserId: winner.id, idempotencyKey: 'settle-11' });
 
@@ -295,8 +295,8 @@ describe('GGVault ledger integration (Postgres)', () => {
     await ledgerService.lockStake({ userId: winner.id, challengeId: challenge.id, amount: 10, idempotencyKey: 'stake-12w' });
     await ledgerService.lockStake({ userId: loser.id, challengeId: challenge.id, amount: 10, idempotencyKey: 'stake-12l' });
 
-    const match = await prisma.match.create({ data: { challengeId: challenge.id } });
-    await prisma.matchResult.create({ data: { matchId: match.id, status: 'PENDING' } });
+    const match = await prisma.match.create({ data: { challengeId: challenge.id, status: 'CONFIRMED' } });
+    await prisma.matchResult.create({ data: { matchId: match.id, status: 'CONFIRMED', winnerUserId: winner.id } });
 
     await ledgerService.settleMatch({ matchId: match.id, winnerUserId: winner.id, idempotencyKey: 'settle-12' });
     await ledgerService.settleMatch({ matchId: match.id, winnerUserId: winner.id, idempotencyKey: 'settle-12' });
@@ -323,8 +323,8 @@ describe('GGVault ledger integration (Postgres)', () => {
     await ledgerService.lockStake({ userId: winner.id, challengeId: challenge.id, amount: 10, idempotencyKey: 'stake-13w' });
     await ledgerService.lockStake({ userId: loser.id, challengeId: challenge.id, amount: 10, idempotencyKey: 'stake-13l' });
 
-    const match = await prisma.match.create({ data: { challengeId: challenge.id } });
-    await prisma.matchResult.create({ data: { matchId: match.id, status: 'PENDING' } });
+    const match = await prisma.match.create({ data: { challengeId: challenge.id, status: 'CONFIRMED' } });
+    await prisma.matchResult.create({ data: { matchId: match.id, status: 'CONFIRMED', winnerUserId: winner.id } });
 
     const p = [
       ledgerService.settleMatch({ matchId: match.id, winnerUserId: winner.id, idempotencyKey: 'settle-13a' }),

@@ -5,9 +5,13 @@ import { MatchesController, EvidenceUploadGuard } from './matches.controller';
 import { EvidenceService } from './evidence.service';
 import { EvidenceStorage, LocalEvidenceStorage } from './evidence.storage';
 import { EvidencePolicy, uploadLimits } from './evidence.policy';
+import { LedgerModule } from '../ledger/ledger.module';
+import { ModerationController } from './moderation.controller';
+import { ModerationService } from './moderation.service';
 
 @Module({
   imports: [
+    LedgerModule,
     MulterModule.registerAsync({
       useFactory: () => {
         const limits = uploadLimits();
@@ -24,9 +28,10 @@ import { EvidencePolicy, uploadLimits } from './evidence.policy';
       },
     }),
   ],
-  controllers: [MatchesController],
+  controllers: [MatchesController, ModerationController],
   providers: [
     MatchesService,
+    ModerationService,
     EvidenceService,
     EvidencePolicy,
     EvidenceUploadGuard,

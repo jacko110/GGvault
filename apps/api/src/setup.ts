@@ -16,11 +16,11 @@ export function configureApp(app: INestApplication) {
   );
   app.useGlobalFilters(new ApiExceptionFilter());
   const config = new DocumentBuilder()
-    .setTitle('GGVault Phase 4')
+    .setTitle('GGVault Phase 5')
     .setDescription(
-      'Non-withdrawable TEST credits. Challenge funding, private matches, results and immutable evidence. No public settlement.',
+      'Non-withdrawable TEST credits. Private matches, immutable evidence, automatic verified settlement and moderator dispute resolution. No player settlement endpoint or real money.',
     )
-    .setVersion('0.4')
+    .setVersion('0.5')
     .addBearerAuth()
     .build();
   SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, config));
