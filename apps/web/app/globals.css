@@ -2054,3 +2054,194 @@ label small {
     border-top-color: #c4afff;
   }
 }
+.match-status-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0 28px;
+}
+.match-status-banner > strong {
+  font-size: 16px;
+  letter-spacing: 0.03em;
+}
+.match-players {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.match-players .card {
+  padding: 20px;
+}
+.match-players h3 {
+  font-size: 17px;
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+}
+.match-players .badge {
+  font-size: 10px;
+}
+.match-vault {
+  background: linear-gradient(120deg, #12352f, #111c23);
+  border-color: #3f8a7766;
+}
+.match-vault > strong {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 12px;
+}
+.scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 16px;
+  padding: 24px 0;
+  text-align: center;
+}
+.scoreboard > span {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.scoreboard strong {
+  display: block;
+  font-size: 48px;
+  color: #ded0ff;
+  margin-top: 12px;
+}
+.scoreboard > b {
+  color: var(--muted);
+}
+.outcome-card {
+  border-color: #458e7966;
+  background: radial-gradient(ellipse at top, #215b4455, transparent), #121923;
+}
+.outcome-card > h2 {
+  font-size: 30px;
+}
+.outcome-card > h3 {
+  font-size: 26px;
+  overflow-wrap: anywhere;
+}
+.outcome-card .positive {
+  margin-top: 24px;
+}
+.action-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.match-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.match-timeline li {
+  display: flex;
+  gap: 14px;
+  position: relative;
+  padding: 0 0 25px 0;
+}
+.match-timeline li:not(:last-child):before {
+  content: '';
+  position: absolute;
+  width: 1px;
+  background: #47415d;
+  left: 5px;
+  top: 15px;
+  bottom: 3px;
+}
+.timeline-marker {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #b291ee;
+  background: #2b1f47;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.match-timeline strong {
+  font-size: 13px;
+}
+.match-timeline time {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.evidence-grid {
+  display: grid;
+  gap: 14px;
+}
+.evidence-grid .card {
+  padding: 18px;
+}
+.evidence-grid h3 {
+  font-size: 16px;
+  margin-top: 12px;
+}
+.evidence-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+  margin: 20px 0;
+  background: #080b13;
+  border-radius: 10px;
+}
+.file-name,
+.resolution-note {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.resolution-note {
+  padding: 14px;
+  background: #ffffff05;
+  border-left: 2px solid #9578d9;
+}
+.mobile-bottom nav {
+  grid-template-columns: repeat(6, 1fr);
+}
+@media (max-width: 600px) {
+  .mobile-bottom nav a {
+    font-size: 9px;
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+  .match-players {
+    gap: 10px;
+  }
+  .match-players .card {
+    padding: 16px 12px;
+  }
+  .match-players h3 {
+    font-size: 14px;
+  }
+  .match-status-banner {
+    gap: 12px;
+  }
+  .match-status-banner > strong {
+    font-size: 13px;
+  }
+  .match-room .card {
+    border-radius: 14px;
+  }
+  .scoreboard {
+    gap: 8px;
+  }
+  .scoreboard strong {
+    font-size: 42px;
+  }
+  .outcome-card > h2 {
+    font-size: 27px;
+  }
+  .action-row .button {
+    flex: 1;
+  }
+  .toolbar > label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}

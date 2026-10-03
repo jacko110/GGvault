@@ -27,6 +27,7 @@ const links = [
   { href: '/', label: 'Home', icon: 'home' },
   { href: '/challenges', label: 'Discover', icon: 'compass' },
   { href: '/challenges/new', label: 'Create', icon: 'plus' },
+  { href: '/matches', label: 'My matches', icon: 'game' },
   { href: '/transactions', label: 'Wallet', icon: 'wallet' },
   { href: '/profile', label: 'Profile', icon: 'user' },
 ];

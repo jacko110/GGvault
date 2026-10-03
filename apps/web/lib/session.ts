@@ -5,11 +5,14 @@ import { cookies } from 'next/headers';
 import { ApiError } from './errors';
 import type { User } from './contracts';
 
+const application = process.env.GGVAULT_APP === 'admin' ? 'admin' : 'web';
+const cookieBase =
+  application === 'admin' ? 'ggvault-admin-session' : 'ggvault-session';
 export const cookieName =
   process.env.NODE_ENV === 'production' &&
   process.env.WEB_COOKIE_SECURE !== 'false'
-    ? '__Host-ggvault-session'
-    : 'ggvault-session';
+    ? `__Host-${cookieBase}`
+    : cookieBase;
 export const cookieOptions = {
   httpOnly: true,
   sameSite: 'lax' as const,
@@ -43,7 +46,7 @@ async function redis() {
   return root.webRedis;
 }
 const key = (sid: string) =>
-  `ggvault:web:session:${createHash('sha256').update(sid).digest('hex')}`;
+  `ggvault:${application}:session:${createHash('sha256').update(sid).digest('hex')}`;
 export const sessionId = () => {
   const sid = cookies().get(cookieName)?.value;
   return sid && /^[a-f0-9]{64}$/.test(sid) ? sid : undefined;
@@ -150,6 +153,19 @@ export async function beginSession(
       body: JSON.stringify(body),
     }),
   );
+  if (application === 'admin') {
+    const access = await upstream('/auth/moderation-access', {
+      headers: { Authorization: `Bearer ${tokens.accessToken}` },
+    });
+    if (!access.ok) {
+      await upstream('/auth/logout', {
+        method: 'POST',
+        body: '{}',
+        headers: { Authorization: `Bearer ${tokens.accessToken}` },
+      }).catch(() => undefined);
+      throw new ApiError('AUTH_FORBIDDEN', 403);
+    }
+  }
   const sid = randomBytes(32).toString('hex');
   await (
     await redis()

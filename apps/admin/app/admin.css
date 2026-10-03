@@ -1,0 +1,88 @@
+.admin-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 22px 5%;
+  border-bottom: 1px solid var(--border);
+  background: #11141f;
+}
+.admin-header > span {
+  margin-left: auto;
+}
+.admin-main {
+  max-width: 1300px;
+  margin: auto;
+  padding: 40px 28px 80px;
+}
+.admin-login {
+  max-width: 470px;
+  margin: 12vh auto;
+  padding: 20px;
+}
+.admin-login h1 {
+  font-size: 34px;
+}
+.admin-header .brand small {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+}
+.dispute-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dispute-card h2,
+.dispute-card p {
+  margin: 0;
+}
+.decision-options {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.decision-options label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+.decision-options input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #ac88ff;
+}
+.decision-options legend {
+  padding: 0 8px;
+}
+.admin-main .two-column {
+  align-items: start;
+}
+@media (max-width: 600px) {
+  .admin-main {
+    padding: 26px 18px 60px;
+  }
+  .admin-header {
+    gap: 10px;
+    padding: 18px;
+  }
+  .admin-header .brand {
+    font-size: 18px;
+  }
+  .admin-header > span {
+    display: none;
+  }
+  .admin-header > div {
+    margin-left: auto;
+  }
+  .admin-header .brand small {
+    font-size: 8px;
+  }
+  .admin-main h1 {
+    font-size: 32px;
+  }
+}

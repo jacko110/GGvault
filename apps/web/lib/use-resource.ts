@@ -37,5 +37,17 @@ export function useResource<T>(path: string | null) {
       generation.value++;
     };
   }, [reload, generation]);
+  useEffect(() => {
+    if (!path?.startsWith('/users/me/transactions')) return;
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void reload();
+    };
+    window.addEventListener('ggvault:wallet-changed', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('ggvault:wallet-changed', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [path, reload]);
   return { data, setData: publish, error, loading, reload };
 }

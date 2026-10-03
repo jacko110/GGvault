@@ -18,6 +18,13 @@ export default defineConfig({
   },
   webServer: [
     {
+      command: 'node scripts/web-test-server.cjs admin',
+      cwd: path.resolve(__dirname, '../..'),
+      url: 'http://127.0.0.1:3102/login',
+      timeout: 60000,
+      reuseExistingServer: false,
+    },
+    {
       command: 'node scripts/web-test-server.cjs api',
       cwd: path.resolve(__dirname, '../..'),
       url: 'http://127.0.0.1:3101/health',

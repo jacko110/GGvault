@@ -1,4 +1,4 @@
-# Security and validation through Phase 6A
+# Security and validation through Phase 6B
 
 Passwords are Argon2id hashes; refresh tokens are hashed random secrets. JWT secrets are mandatory configuration. Passwords, hashes and tokens are excluded from audit events and user responses. Framework validation suppresses target objects and submitted values in exceptions. Unhandled errors return a generic 500 without Prisma errors or stack traces.
 
@@ -48,3 +48,6 @@ Phase 5 supersedes the prior no-settlement boundary. Confirmation, moderator res
 ## Phase 6A browser boundary
 
 The public web app uses an opaque HttpOnly, SameSite=Lax session cookie; backend access/refresh tokens remain in private server-side Redis. Production cookies require HTTPS by default. Mutations require an exact Origin and JSON content type. The server proxy allowlists Phase 6A routes, strips internal vault account IDs and returns safe error messages. See [frontend security and deployment details](frontend.md#authentication-and-browser-api-boundary). Backend authorization remains authoritative, including ownership and participant checks. No ledger accounting or real-payment behavior changed.
+## Phase 6B match and moderator frontends
+
+Admin uses a separate opaque HttpOnly session cookie and Redis namespace. Login checks the active backend role; layouts, proxy requests and evidence reads recheck moderation access. Player BFF allowlists never include moderation. JSON decisions and multipart player evidence uploads validate their exact application origin. Evidence responses stay private/no-store with restricted MIME and no-sniff headers; storage paths are not exposed. Read-only match/refund projections enforce ownership or participant/staff access and expose no raw ledger entries. Existing backend readiness, evidence locking, result authorization, moderator conflict checks and settlement accounting remain unchanged. See [match experience](match-experience.md) for the evidence-before-dispute constraint and deployment setup.

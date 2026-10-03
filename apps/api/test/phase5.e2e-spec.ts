@@ -46,6 +46,49 @@ describe('Phase 5 real PostgreSQL settlement and moderation', () => {
     }).expect(200);
     return (await db.dispute.findFirstOrThrow()).id;
   }
+  it('lists only owned matches and validates safe read filters', async () => {
+    await api().get('/matches').expect(401);
+    const own = await get('/matches?status=IN_PROGRESS&limit=1', a).expect(200);
+    expect(own.body.items.map((m: { id: string }) => m.id)).toEqual([matchId]);
+    expect(own.body.items[0]).toMatchObject({
+      game: 'FC 26',
+      stakeAmount: 10,
+      players: expect.arrayContaining(['amir', 'samuel']),
+    });
+    expect((await get('/matches', moderator).expect(200)).body.items).toEqual(
+      [],
+    );
+    await get('/matches?status=BOGUS', a).expect(400);
+    await get('/matches?limit=101', a).expect(400);
+    await get(`/matches/${matchId}/refunds`, a).expect(200, []);
+  });
+  it('returns exact posted refund credits without ledger internals', async () => {
+    const id = await dispute();
+    await resolve(id, 'VOID_MATCH').expect(200);
+    const refunds = (await get(`/matches/${matchId}/refunds`, b).expect(200))
+      .body;
+    expect(refunds).toEqual(
+      expect.arrayContaining([
+        { userId: a.id, amount: 10 },
+        { userId: b.id, amount: 10 },
+      ]),
+    );
+    expect(refunds).toHaveLength(2);
+    expect(Object.keys(refunds[0]).sort()).toEqual(['amount', 'userId']);
+    expect(
+      (await get(`/matches/${matchId}/refunds`, moderator).expect(200)).body,
+    ).toEqual(refunds);
+    await db.user.update({
+      where: { id: moderator.id },
+      data: { role: 'USER' },
+    });
+    await get(`/matches/${matchId}/refunds`, moderator).expect(403);
+    await get(`/matches/${matchId}/refunds`, {
+      ...admin,
+      id: a.id,
+      token: '',
+    }).expect(401);
+  });
   async function conservation() {
     const txs = await db.ledgerTransaction.findMany({
       include: { entries: true },

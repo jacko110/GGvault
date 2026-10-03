@@ -1,6 +1,6 @@
 # GGVault Web
 
-Phase 6A public application: login/register, authenticated home, challenge discovery/create/detail, vault funding, profile/game accounts and transaction history. See [frontend setup and architecture](../../docs/frontend.md).
+Public application: login/register, authenticated home, challenges, vault funding, profile and wallet, extended in Phase 6B with My Matches, readiness, result review, private evidence, timeline and verified outcomes. See [frontend foundation](../../docs/frontend.md) and [match experience](../../docs/match-experience.md).
 
 ## Commands
 

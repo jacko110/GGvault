@@ -16,13 +16,29 @@ Object.assign(process.env, {
   INITIAL_TEST_CREDITS: '100',
 });
 const api = process.argv[2] === 'api';
+const admin = process.argv[2] === 'admin';
+process.env.GGVAULT_APP = admin ? 'admin' : 'web';
+process.env.WEB_ORIGIN = admin
+  ? 'http://127.0.0.1:3102'
+  : 'http://127.0.0.1:3100';
+process.env.PLATFORM_FEE_BPS = '500';
+process.env.EVIDENCE_STORAGE_DIR = path.join(
+  root,
+  'storage',
+  'phase6b-browser',
+);
 const child = spawn(
   process.execPath,
   api
     ? [path.join(root, 'apps/api/dist/main.js')]
-    : [require.resolve('next/dist/bin/next'), 'start', '-p', '3100'],
+    : [
+        require.resolve('next/dist/bin/next'),
+        'start',
+        '-p',
+        admin ? '3102' : '3100',
+      ],
   {
-    cwd: api ? root : path.join(root, 'apps/web'),
+    cwd: api ? root : path.join(root, admin ? 'apps/admin' : 'apps/web'),
     env: process.env,
     stdio: 'inherit',
     windowsHide: true,

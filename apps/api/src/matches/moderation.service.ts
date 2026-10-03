@@ -32,6 +32,7 @@ const present = ({ matchResult: { match }, ...dispute }: Row) => ({
   ...dispute,
   matchId: match.id,
   challengeId: match.challengeId,
+  game: match.challenge.game,
   players: match.participants.map((p) => ({
     id: p.userId,
     username: p.user.username,

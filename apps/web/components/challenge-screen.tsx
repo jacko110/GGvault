@@ -288,9 +288,16 @@ export function ChallengeScreen({
           )}
           {secured && (
             <p className="phase-note">
-              Both stakes are secured. Your opponent is locked in. Keep this
-              challenge handy.
+              Both stakes are secured. Your opponent is locked in.
             </p>
+          )}
+          {me && challenge.matches[0] && (
+            <Link
+              className="button primary full"
+              href={`/matches/${challenge.matches[0].id}`}
+            >
+              Open match room
+            </Link>
           )}
         </div>
       </div>

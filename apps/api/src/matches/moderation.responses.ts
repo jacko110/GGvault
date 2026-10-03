@@ -19,6 +19,10 @@ class ProposedResult {
     string | null;
 }
 export class ModerationDisputeResponse {
+  @ApiProperty({ type: Object, description: 'Game id and name' }) game!: {
+    id: string;
+    name: string;
+  };
   @ApiProperty() id!: string;
   @ApiProperty() matchId!: string;
   @ApiProperty() challengeId!: string;

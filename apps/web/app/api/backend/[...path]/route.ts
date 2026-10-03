@@ -4,6 +4,8 @@ import { checkMutation, failure } from '@/lib/route-security';
 const id = 'c[a-z0-9]{24}';
 const allowed: Record<string, RegExp[]> = {
   GET: [
+    /^matches$/,
+    new RegExp(`^matches/${id}(/(timeline|evidence|refunds))?$`),
     /^auth\/me$/,
     /^games$/,
     /^challenges$/,
@@ -14,6 +16,7 @@ const allowed: Record<string, RegExp[]> = {
     /^users\/me\/game-accounts$/,
   ],
   POST: [
+    new RegExp(`^matches/${id}/(ready|result|result/confirm|result/dispute)$`),
     /^challenges$/,
     new RegExp(`^challenges/${id}/(join|cancel|fund)$`),
     /^users\/me\/game-accounts$/,

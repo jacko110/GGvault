@@ -22,7 +22,7 @@ const changed = new Set(git(['diff', '--name-only', '--diff-filter=ACMR', 'HEAD~
 const source = /\.(?:ts|tsx|js|jsx|cjs|mjs|json|css|scss|md|sql|prisma|toml|yml|yaml|ps1|base64)$/;
 const selected = tracked.filter(f =>
   (changed.has(f) && source.test(f)) ||
-  /^apps\/api\/test\//.test(f) || /^apps\/web\/tests\//.test(f) ||
+  /^apps\/api\/test\//.test(f) || /^apps\/(web|admin)\/tests\//.test(f) ||
   /^packages\/database\/prisma\//.test(f) ||
   /^docs\//.test(f) ||
   /(^|\/)package\.json$/.test(f) ||

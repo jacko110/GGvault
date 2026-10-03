@@ -8,6 +8,7 @@ import { EvidencePolicy, uploadLimits } from './evidence.policy';
 import { LedgerModule } from '../ledger/ledger.module';
 import { ModerationController } from './moderation.controller';
 import { ModerationService } from './moderation.service';
+import { MatchReadsController } from './match-reads.controller';
 
 @Module({
   imports: [
@@ -28,7 +29,7 @@ import { ModerationService } from './moderation.service';
       },
     }),
   ],
-  controllers: [MatchesController, ModerationController],
+  controllers: [MatchesController, ModerationController, MatchReadsController],
   providers: [
     MatchesService,
     ModerationService,

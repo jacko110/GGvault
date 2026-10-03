@@ -1,5 +1,7 @@
 # Phase 6A frontend
 
+Phase 6B now extends this foundation with match rooms and a separate moderator app. See [match experience](match-experience.md) for the current flow; this document records the Phase 6A foundation.
+
 The public application lives in `apps/web`. It uses the existing Next.js App Router, TypeScript and the NestJS API. All money-like values are non-withdrawable TEST credits. Admin and Phase 6B match/result/evidence/dispute screens are not implemented here.
 
 ## Run locally

@@ -1,4 +1,24 @@
 const messages: Record<string, string> = {
+  DRAW_UNSUPPORTED: 'Draws are not supported. Please check the final score.',
+  RESULT_SELF_DECISION: 'Your opponent must review your result.',
+  RESULT_FINALIZED:
+    'This result has already been decided. The latest state has been loaded.',
+  RESULT_NOT_SUBMITTED: 'A result has not been submitted yet.',
+  MATCH_NOT_READY: 'Both players must be ready first.',
+  MATCH_NOT_FOUND: 'This match could not be found.',
+  MATCH_NOT_PARTICIPANT: 'This match is private to its players.',
+  MATCH_NOT_IN_PROGRESS: 'This match is not accepting results right now.',
+  RESULT_ALREADY_SUBMITTED: 'A result has already been submitted.',
+  RESULT_SELF_CONFIRM: 'Your opponent must review your result.',
+  RESULT_NOT_PENDING:
+    'This result has already changed. The latest state has been loaded.',
+  DISPUTE_ALREADY_RESOLVED: 'This dispute has already been resolved.',
+  MODERATOR_CONFLICT: 'You cannot resolve a match you participated in.',
+  EVIDENCE_LOCKED: 'Evidence uploads are closed for this player or match.',
+  EVIDENCE_TOO_LARGE: 'This file exceeds the allowed size.',
+  EVIDENCE_INVALID_TYPE: 'Choose a valid PNG, JPEG, WEBP or MP4 file.',
+  EVIDENCE_FILE_REQUIRED: 'Choose a nonempty evidence file first.',
+  EVIDENCE_UNAVAILABLE: 'This evidence could not be loaded.',
   LEDGER_INSUFFICIENT_FUNDS:
     "You don't have enough credits for this challenge.",
   CHALLENGE_FULL: 'Another player already joined this challenge.',

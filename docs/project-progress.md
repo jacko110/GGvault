@@ -1,16 +1,18 @@
 # GGVault project progress
 
-Last updated: 2026-10-02
+Last updated: 2026-10-03
 
 This is the ongoing record of completed work, current work, outstanding tasks and phase handovers. Update it as work progresses. Completed implementation and completed review delivery are tracked separately.
 
 ## Current position
 
-Phase 6A implementation and validation are complete from approved Phase 5 baseline `766a20c`. The nine-screen Next.js frontend includes secure Redis-backed HttpOnly sessions, reusable responsive components, the real Challenge → Vault workflow and safe wallet history. Final frontend/API builds and repository lint passed. All **196 tests passed**: 183 backend, 11 isolated component and 2 real API-backed Chromium tests. Screens were checked at 390/768/1440px. The completed phase is committed and delivered as GGvault-phase6a-review.zip with all three Git reports; all 97 archive members were verified against committed source/report bytes. Final commit identity is in phase6a-commit.txt; Phase 6B has not started. See [Phase 6A validation](phase6a-validation.md).
+Phase 6B implementation and validation are complete from approved Phase 6A baseline `b3b3cd8`. Player match/readiness/result/evidence/outcome screens and the separate moderator application are implemented. New backend changes are read-only projections for owned matches, safe refund amounts and queue game metadata; domain mutations and ledger accounting are unchanged. Evidence follows existing backend deadlines and must be uploaded before opening a dispute. All **216 tests passed**, along with builds, lint and responsive checks at 390/768/1440px. Commit and review delivery are complete: GGvault-phase6b-review.zip contains 109 verified source/review members and all three Git reports. Commit identity is recorded in phase6b-commit.txt. See [Phase 6B validation](phase6b-validation.md).
+
+Phase 6A implementation and validation are complete from approved Phase 5 baseline `766a20c`. The nine-screen Next.js frontend includes secure Redis-backed HttpOnly sessions, reusable responsive components, the real Challenge → Vault workflow and safe wallet history. Final frontend/API builds and repository lint passed. All **196 tests passed**: 183 backend, 11 isolated component and 2 real API-backed Chromium tests. Screens were checked at 390/768/1440px. The completed phase is committed and delivered as GGvault-phase6a-review.zip with all three Git reports; all 97 archive members were verified against committed source/report bytes. Final commit identity is in phase6a-commit.txt; Phase 6B extends this foundation. See [Phase 6A validation](phase6a-validation.md).
 
 Phase 5 implementation and validation are complete from approved Phase 4 commit `cbb5b36`. Scope: automatic confirmed settlement, server fee policy, moderator dispute review/resolution, void refunds and safe transaction history. Core implementation and documentation are present. Clean migrations/seed and all final tests passed: **11 suites, 182 tests, 0 failures** (32 unit, 17 integration, 133 e2e). Full workspace build, final lint and compiled API/OpenAPI smoke checks passed. Persisted ledger conservation is zero. The completed phase is committed and delivered as GGvault-phase5-review.zip with all three Git reports. All 72 archive members were verified against committed source/report bytes. Final commit identity is in phase5-commit.txt. Authentication, funding and evidence storage architecture are retained.
 
-Phase 4 was delivered and approved; its source-only review remains available as GGvault-phase4-review.zip. Its original confirmed-vault-retention behavior is superseded by Phase 5 settlement. The admin frontend remains a placeholder; Phase 6A replaces the public placeholder.
+Phase 4 was delivered and approved; its source-only review remains available as GGvault-phase4-review.zip. Its original confirmed-vault-retention behavior is superseded by Phase 5 settlement. Phase 6A replaced the public placeholder; Phase 6B implements the moderator application.
 
 ## Phase overview
 
@@ -22,6 +24,8 @@ Phase 4 was delivered and approved; its source-only review remains available as 
 | Phase 4                  | Match lifecycle, result verification, immutable evidence and timeline              | Complete; validated on 2026-10-01                   | Baseline a9e3209; [validation report](phase4-validation.md); source-only review delivered; commit identity in phase4-commit.txt                        |
 | Phase 5                  | Dispute resolution and secure TEST credit settlement                               | Complete; validated on 2026-10-02                   | Baseline cbb5b36; [validation report](phase5-validation.md); source-only review delivered; commit identity in phase5-commit.txt                        |
 | Phase 6A                 | Authenticated frontend foundation and Challenge → Vault                            | Implemented and validated on 2026-10-02             | Baseline 766a20c; [validation report](phase6a-validation.md); source-only review delivered; 97 members verified; commit identity in phase6a-commit.txt |
+
+| Phase 6B | Match experience and separate moderator application | Implemented and validated on 2026-10-03 | [Validation report](phase6b-validation.md); source-only review delivered; 109 members verified; commit identity in phase6b-commit.txt |
 
 ## Completed work
 
@@ -80,7 +84,7 @@ See [phase3-validation.md](phase3-validation.md) for suite names and details.
 | Phase 4 handover                         | Delivered                              | GGvault-phase4-review.zip; commit identity in phase4-commit.txt                                      |
 | Future phase review delivery             | Required at every phase completion     | Commit, generate patch/stat/commit reports, create and inspect source-only ZIP                       |
 
-Real payments, withdrawals, TikTok, tournaments and external game APIs remain out of scope. Phase 5 moderator resolution and test-credit settlement are implemented and validated. Phase 6A is authorized through the Challenge → Vault frontend; Phase 6B match/result/evidence/dispute/moderator UI has not started.
+Real payments, withdrawals, TikTok, tournaments and external game APIs remain out of scope. Phase 5 moderator resolution and test-credit settlement are implemented and validated. Phase 6A is authorized through the Challenge → Vault frontend; Phase 6B match/result/evidence/dispute/moderator UI is implemented and validated.
 
 ## Phase 4 validation
 
@@ -103,6 +107,17 @@ Clean PostgreSQL/Redis reset, Prisma generation, all three migrations and FC 26 
 - [x] Document settlement, dispute resolution, moderation and updated APIs.
 - [x] Finish final validation: 11 suites, 182 tests passed, zero failures; full build/lint and compiled smoke passed; ledger conservation zero.
 - [x] Commit Phase 5 and generate/verify source-only review delivery: 72 members, committed-source/report hashes match, forbidden paths excluded.
+
+## Phase 6B completion
+
+- [x] Implement match room, readiness, scores, opponent decisions, timeline and My Matches.
+- [x] Implement private evidence and server-authoritative winner/refund outcomes.
+- [x] Implement separate moderator login, queue, review and final decision dialogs.
+- [x] Preserve backend domain mutations/ledger accounting and document evidence deadlines.
+- [x] Validate full workspace build, lint, 21 player component tests and 7 admin component tests.
+- [x] Complete backend regressions (185 tests) and real browser scenarios (3 tests) against running local services.
+- [x] Inspect responsive screenshots at 390/768/1440px and record final validation: 216 tests passed, zero failures.
+- [x] Commit Phase 6B, generate all three reports and verify GGvault-phase6b-review.zip: 109 members, committed-source/report hashes match, forbidden files excluded.
 
 ## Phase 6A completion
 
@@ -132,6 +147,8 @@ Clean PostgreSQL/Redis reset, Prisma generation, all three migrations and FC 26 
 | 2026-10-02 | Implement Phase 5 from approved Phase 4               | Clean four-migration deployment and seed passed; all 182 tests, full build/lint and compiled API smoke passed; zero ledger conservation                                                                                             |
 | 2026-10-02 | Commit Phase 5 and deliver source-only review         | GGvault-phase5-review.zip plus patch/stat/commit reports; all 72 archive members verified against the completed commit                                                                                                              |
 | 2026-10-02 | Implement and validate Phase 6A                       | Nine screens, secure web sessions and real Challenge → Vault flow; builds/lint and all 196 tests passed; responsive screenshots inspected; source-only review delivered; 97 members verified; commit identity in phase6a-commit.txt |
+
+| 2026-10-03 | Implement and validate Phase 6B | Player match experience and moderator app complete; all 216 tests passed; builds/lint and responsive checks passed; source-only archive and all three reports delivered; 109 member hashes verified |
 
 ## Future phase record template
 

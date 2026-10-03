@@ -2,13 +2,13 @@
 
 ## Overview
 
-GGVault is a competitive gaming challenge platform using non-withdrawable TEST credits. The approved Phase 5 backend handles secure settlement and dispute resolution. Phase 6A adds the authenticated public frontend through challenge funding; real payments remain out of scope.
+GGVault is a competitive gaming challenge platform using non-withdrawable TEST credits. The approved Phase 5 backend handles secure settlement and dispute resolution. Phase 6A provides the authenticated foundation; Phase 6B connects player matches, evidence, outcomes and a separate moderator app. Real payments remain out of scope.
 
 ## Components
 
 - API: NestJS service layer for routes, health checks, and challenge operations
-- Web app: Next.js authenticated shell, challenges, vault funding, profile and wallet; server-only adapter keeps backend credentials out of the browser
-- Admin app: Next.js placeholder; moderator backend endpoints exist but their UI is not implemented
+- Web app: Next.js authenticated shell, challenges, match rooms, private evidence, outcomes, profile and wallet; server-only adapter keeps credentials out of the browser
+- Admin app: Next.js moderator queue, private evidence review and final decisions; separate session cookie/Redis namespace with live backend role checks
 - Database: PostgreSQL via Prisma for persistence
 - Redis: shared authentication rate-limit counters and private web sessions/refresh locks in separate key namespaces
 - Shared packages: reusable cross-app types and helpers
