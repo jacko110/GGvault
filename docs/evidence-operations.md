@@ -1,0 +1,7 @@
+# Evidence operations
+
+JPEG, PNG, WEBP and MP4 are the only accepted formats. Size is the minimum of the per-format limit and MAX_EVIDENCE_SIZE. The API verifies container signatures, extension/type agreement, filename length and unsafe characters. This is not full decoding or malware scanning. Original filenames never select a storage path; UUID keys and a private configured directory do. Never mount that directory as a public web root or execute files from it.
+
+Evidence is immutable after the existing submission/dispute deadline. Database records include SHA-256 and file reads verify integrity. Back up the evidence directory and PostgreSQL as a coordinated recovery set: stop writes, capture both, record a manifest and hashes, encrypt/restrict access, and test restoration. A DB-only backup cannot recover lost media. If the filesystem is lost, metadata/timeline may survive but evidence content fails safely; moderators must not treat missing evidence as verified. Pause affected dispute resolution until recovery or a documented operator decision.
+
+A crash between filesystem write and transaction commit can leave orphan objects; an incomplete restore can create database references to missing objects. Compare object keys and hashes offline and report discrepancies. Never automatically delete or repair evidence or ledger entries. Retain backups under an explicit access/retention policy; exclude media and backup data from Git and review packages. No S3 integration was added.

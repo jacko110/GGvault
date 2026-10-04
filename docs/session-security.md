@@ -1,0 +1,13 @@
+# Session lifecycle and CSRF
+
+Registration/login creates a PostgreSQL backend session, a 15-minute signed access token and random refresh token whose hash is stored in PostgreSQL. The BFF stores tokens only in Redis behind a new random 32-byte browser session ID. Cookies are HttpOnly, SameSite=Lax, Path=/ and Secure with a __Host- prefix in production. WEB_COOKIE_SECURE=false exists solely for local HTTP testing; never set it for a hosted beta.
+
+Player/admin cookie names and Redis key prefixes differ. Browser storage contains no access/refresh tokens. Tokens are never included in BFF JSON responses. A supplied cookie is not reused during login, preventing session fixation. API requests check database revocation, session expiry, current user status and current role on every authenticated request.
+
+Redis records and cookies have a 30-day absolute lifetime. Refresh retains the original expiry rather than extending it. An access-token failure acquires a Redis lock, reloads the record, then refreshes only if another request has not already rotated it. Locks have a 20-second lease and an owner-checked release; upstream calls time out at 10 seconds. Contention returns a safe unavailable response rather than exposing credentials. Backend refresh rotation revokes the old session/token. Old-token reuse fails.
+
+Logout asks the API to revoke its session and deletes the Redis record; the browser cookie is cleared even on failure. If revocation cannot reach PostgreSQL, local logout still removes BFF access but does not prove remote revocation. Operators must revoke backend sessions separately during compromise response. Redis loss removes browser access and requires login again; PostgreSQL ledger and sessions remain intact. Redis is not a financial cache to rebuild balances from.
+
+All browser mutations check the exact configured WEB_ORIGIN (ADMIN_ORIGIN is mapped into the admin process), rejecting missing, null, malicious and different-port origins. JSON mutations also require application/json and bounded streaming reads of at most 8192 bytes, including chunked requests. Multipart evidence uses its own same-origin and bounded-body checks. No reliance on Referer or CORS alone. Backend APIs use explicit bearer credentials, not browser cookies.
+
+Configure exact HTTPS origins, restrict direct API/Redis ingress, and set edge IP rate limits from a trusted proxy. The API deliberately does not trust arbitrary X-Forwarded-For values. Auth IP counters can aggregate BFF callers; an edge deployment must account for this rather than silently disabling limits. Test evidence includes the existing real concurrent-refresh browser flow plus Phase 7 origin/header regressions.

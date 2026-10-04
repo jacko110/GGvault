@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { extname } from 'path';
 import { fail } from '../common/domain';
+import { betaConfig } from '../common/beta-config';
 
 export interface EvidenceUpload {
   buffer: Buffer;
@@ -22,8 +23,14 @@ function limit(name: string, fallback: number) {
 }
 export function uploadLimits() {
   return {
-    screenshot: limit('EVIDENCE_SCREENSHOT_MAX_BYTES', 10 * 1024 * 1024),
-    video: limit('EVIDENCE_VIDEO_MAX_BYTES', 50 * 1024 * 1024),
+    screenshot: Math.min(
+      limit('EVIDENCE_SCREENSHOT_MAX_BYTES', 10 * 1024 * 1024),
+      betaConfig().maxEvidence,
+    ),
+    video: Math.min(
+      limit('EVIDENCE_VIDEO_MAX_BYTES', 50 * 1024 * 1024),
+      betaConfig().maxEvidence,
+    ),
   };
 }
 
@@ -92,7 +99,7 @@ export class EvidencePolicy {
       );
     if (
       file.originalname.length > 255 ||
-      /[\x00-\x1f\x7f]/.test(file.originalname)
+      /[\x00-\x1f\x7f/\\<>]/.test(file.originalname)
     )
       fail(400, 'EVIDENCE_INVALID_FILENAME', 'Invalid original filename.');
     const mime = detectedMime(file.buffer);

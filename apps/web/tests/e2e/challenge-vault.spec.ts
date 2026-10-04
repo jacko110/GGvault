@@ -140,9 +140,19 @@ test('real two-player challenge, funding, sessions and responsive wallet', async
     await register(other, nameB);
     await linkAccount(other, gameId, `TagB_${stamp}`);
     await other.goto('/challenges');
+    const filteredChallenges = other.waitForResponse(
+      (response) =>
+        response.url().includes('/api/backend/challenges?') &&
+        new URL(response.url()).searchParams.get('gameId') === gameId &&
+        response.status() === 200,
+    );
     await other
       .getByRole('combobox', { name: 'Game', exact: true })
       .selectOption(gameId);
+    await filteredChallenges;
+    await expect(
+      other.getByText('Finding your next challenge…'),
+    ).not.toBeVisible();
     await expect(other.locator(`a[href="${challenge}"]`)).toBeVisible();
     await noOverflow(other);
     await other.locator(`a[href="${challenge}"]`).click();

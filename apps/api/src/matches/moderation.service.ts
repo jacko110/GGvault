@@ -131,11 +131,20 @@ export class ModerationService {
         where: { id: match.id },
         data: { updatedAt: new Date() },
       });
-      await matchEvent(tx, match.id, 'DISPUTE_REVIEWED', actor.sub, {
-        matchId: match.id,
-        challengeId: match.challengeId,
-        disputeId: id,
+      // Serialize first-review insertion on the match; polling must not flood the audit trail.
+      const reviewed = await tx.matchEvent.findFirst({
+        where: {
+          matchId: match.id,
+          type: 'DISPUTE_REVIEWED',
+          actorUserId: actor.sub,
+        },
       });
+      if (!reviewed)
+        await matchEvent(tx, match.id, 'DISPUTE_REVIEWED', actor.sub, {
+          matchId: match.id,
+          challengeId: match.challengeId,
+          disputeId: id,
+        });
       const { entryFee, ...challenge } = match.challenge;
       const auditEvents = await tx.auditLog.findMany({
         where: { entity: 'Match', entityId: match.id },

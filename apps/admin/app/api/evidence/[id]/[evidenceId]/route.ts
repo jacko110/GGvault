@@ -4,8 +4,11 @@ import { moderatorAccess } from '../../../../../lib/access';
 export const runtime = 'nodejs';
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string; evidenceId: string } },
+  {
+    params: pendingParams,
+  }: { params: Promise<{ id: string; evidenceId: string }> },
 ) {
+  const params = await pendingParams;
   try {
     await moderatorAccess();
     return evidenceContent(params.id, params.evidenceId);

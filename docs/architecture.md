@@ -2,7 +2,7 @@
 
 ## Overview
 
-GGVault is a competitive gaming challenge platform using non-withdrawable TEST credits. The approved Phase 5 backend handles secure settlement and dispute resolution. Phase 6A provides the authenticated foundation; Phase 6B connects player matches, evidence, outcomes and a separate moderator app. Real payments remain out of scope.
+GGVault is a competitive gaming challenge platform using non-withdrawable TEST credits. The approved Phase 5 backend handles secure settlement and dispute resolution. Phase 6A provides the authenticated foundation; Phase 6B connects player matches, evidence, outcomes and a separate moderator app. Phase 7 adds shared mutation throttling, admin-only operations/metrics, safe logs, dependency readiness and offline invariant/recovery tooling. Real payments remain out of scope.
 
 ## Components
 

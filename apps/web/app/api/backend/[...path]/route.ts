@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticated, upstreamJson } from '@/lib/session';
-import { checkMutation, failure } from '@/lib/route-security';
+import { checkMutation, failure, readMutationBody } from '@/lib/route-security';
 const id = 'c[a-z0-9]{24}';
 const allowed: Record<string, RegExp[]> = {
   GET: [
@@ -26,14 +26,16 @@ const allowed: Record<string, RegExp[]> = {
 export const runtime = 'nodejs';
 async function handle(
   request: NextRequest,
-  { params }: { params: { path: string[] } },
+  { params: pendingParams }: { params: Promise<{ path: string[] }> },
 ) {
+  const params = await pendingParams;
   try {
     const path = params.path.join('/');
     if (!allowed[request.method]?.some((pattern) => pattern.test(path)))
       return new NextResponse(null, { status: 404 });
     if (request.method !== 'GET') checkMutation(request);
-    const raw = request.method === 'GET' ? undefined : await request.text();
+    const raw =
+      request.method === 'GET' ? undefined : await readMutationBody(request);
     if (raw && raw.length > 8192)
       return new NextResponse(null, { status: 413 });
     const headers: Record<string, string> = {};

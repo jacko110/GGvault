@@ -1,0 +1,36 @@
+# Closed TEST-credit beta threat model
+
+Scope: player BFF, admin BFF, NestJS API, database, ledger and match engine. Review uses STRIDE categories and actor/object authorization. Findings distinguish demonstrated behavior from residual risks. This is a code and regression review, not an independent penetration test.
+
+## Assets and boundaries
+
+Accounts, moderator privileges, opaque browser sessions, backend refresh tokens, TEST credits, immutable ledger entries, match vaults, evidence, dispute decisions and audit events are protected assets. TEST credits are not redeemable.
+
+Browser -> HTTPS Next.js BFF -> private NestJS bearer API -> PostgreSQL / Redis / private evidence filesystem. Player and admin have separate session-cookie names and Redis namespaces. API checks the current database session, user status and role rather than trusting browser identity or stale role claims. Redis is an authentication dependency, not the financial source of truth. Filesystem and database backups cross a separate operator trust boundary.
+
+## Threat/control register
+
+| Asset / category | Attack | Existing control and reviewed behavior | Remaining risk / mitigation |
+| --- | --- | --- | --- |
+| Accounts / spoofing | Password guessing, credential stuffing | Argon2id, generic login rejection, Redis IP authentication limits | BFF traffic shares a source address; enforce trusted edge IP limits without accepting arbitrary forwarded headers. Invites are operator-managed; no claim of automatic multi-account detection. |
+| Sessions / spoofing | Theft, fixation, refresh replay | 256-bit opaque IDs, HttpOnly/Lax cookies, Secure production default, hashed Redis keys, rotating backend refresh tokens, database revocation | TLS and private Redis required; stolen live credentials work until revoked. Remove sessions and rotate credentials during incident response. |
+| Sessions / replay | Concurrent refresh or logout race | Redis owner-checked lock, reload latest credentials, fixed 30-day absolute TTL, backend session checks | Redis loss logs browser sessions out; stale bearer sessions remain subject to PostgreSQL expiry/revocation. Lost Redis does not revoke every backend session automatically. |
+| Browser / tampering | CSRF | Exact configured Origin plus JSON for browser mutations, multipart Origin check for upload, SameSite cookie | Misconfigured WEB_ORIGIN denies legitimate requests. API bearer routes are not cookie-authenticated. |
+| Browser / disclosure | XSS, injected evidence filename, framing | React escaping, nonce script CSP, no raw HTML rendering, safe evidence MIME, no-sniff, frame-ancestors none | CSS inline styles remain permitted; header signatures are not malware scanning. Keep dependencies patched. |
+| Private objects / elevation | IDOR/BOLA on matches, evidence, refunds, balances | Participant/staff checks use authenticated actor; current role/status checked; unrelated actors receive 403 | Challenge discovery/detail is intentionally shared with authenticated players. Missing resources can return 404. ID possession never grants private access. |
+| Profile/finance / tampering | Mass assignment, SQL injection | Whitelisted DTOs reject extra fields; actor IDs derived server-side; Prisma parameterized queries | Operational SQL is trusted local code only. No arbitrary SQL endpoint. |
+| TEST credits / tampering | Arbitrary balances, account IDs, winner, fee or payout | No public ledger-write/settle/refund endpoints; score-only submission; server-derived winner and fee; staff resolution boundaries | Compromised database/operator can bypass application controls; least-privilege database accounts and independent backups required. |
+| Vault / replay | Duplicate funding, double spending, settlement/refund race | Serializable transactions, scoped idempotency, uniqueness barriers, balanced postings; existing financial tests retained | Contention can reject operations safely; measured load failures are reported, not hidden by lowering isolation. Retry with same funding key. |
+| Availability / DoS | Challenge spam, rate-limit bypass, huge bodies | Shared Redis actor/action mutation counters, fail-closed errors, beta daily/open/stake limits, bounded BFF body reads, upload caps | Multi-account abuse and distributed floods need invite controls, edge limits and resource quotas. Redis failure denies mutations. |
+| Evidence / tampering | Traversal, spoofed MIME/extension, malicious uploads | Reject path/control/HTML filename characters; server UUID object names; signature/type agreement; exclusive file creation; SHA-256 read verification | No full media decoder/antivirus. Store outside served/executable directories; restrict filesystem permissions; back up files with DB. |
+| Evidence / repudiation | Alter evidence after dispute | Existing upload deadline and immutable objects; private authorized retrieval | Orphan/missing files possible after crashes or incomplete backups; no automatic deletion/repair. |
+| Moderator / elevation | Ordinary user access, role change, participant judging own match | Live database roles, separate BFF sessions, backend conflict checks, required reason, atomic decision | No MFA in this phase. Restrict admin ingress, use unique strong credentials, review operator access. |
+| Audit / repudiation | Erase/flood events | Append-oriented application writes; first review per moderator/match recorded once; transactional domain events | DB operator can modify rows; export restricted logs/backups. Audit is not claimed cryptographically tamper-proof. |
+| Logs / disclosure | Token/password/evidence leakage | Explicit structured-log field allowlist, no bodies/query strings/cookies/headers/errors serialized, safe request IDs | Operator tooling and reverse proxies must follow equivalent redaction and retention rules. |
+| Dependencies / execution | Framework or transitive vulnerabilities | Executed audit and targeted framework update; separate dependency report | Beta launch requires review of remaining runtime findings; passing application tests alone does not prove exploit absence. |
+
+## Endpoint inventory
+
+`/auth/*`: credentials/session operations; moderation-access requires live ADMIN/MODERATOR. `/users/me*`: actor-owned profile, game accounts and transactions. `/users/:userId/balance` and `/ledger`: own actor only. `/challenges`: authenticated discover/create; detail is discoverable; join/fund/cancel enforce actor membership/creator rules. `/challenges/:id/vault`: participant only. `/matches` lists only owned matches; detail/timeline/evidence/refunds authorize participants or current staff; mutations require actual participant. `/moderation/disputes*`: live staff, resolution rejects a participating moderator. `/operations/*`: ADMIN only. Health is public and contains no credentials; metrics/funnel are not public. Unsupported write routes return 404.
+
+No vulnerability is asserted merely because a threat exists. Demonstrated Phase 7 changes include repeated-review audit flooding, missing shared mutation throttling, unbounded chunked BFF JSON accumulation, and filename-policy gaps; regression evidence is in the validation report. Dependency advisories are registry findings, not application exploit demonstrations.

@@ -213,6 +213,8 @@ model Challenge {
   matches         Match[]
 
   @@map("challenges")
+  @@index([createdByUserId, status])
+  @@index([createdByUserId, createdAt])
 }
 
 model ChallengePlayer {
@@ -336,6 +338,8 @@ model LedgerEntry {
   ledgerAccount   LedgerAccount      @relation(fields: [ledgerAccountId], references: [id], onDelete: Cascade)
 
   @@map("ledger_entries")
+  @@index([ledgerAccountId, createdAt, id])
+  @@index([transactionId])
 }
 
 model Evidence {
@@ -388,4 +392,5 @@ model AuditLog {
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
+  @@index([entity, entityId, createdAt])
 }

@@ -11,6 +11,7 @@ import { ChallengesController } from './challenges/challenges.controller';
 import { ChallengesService } from './challenges/challenges.service';
 import { MatchesModule } from './matches/matches.module';
 import { GamesController } from './games.controller';
+import { OperationsController } from './operations/operations.controller';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { GamesController } from './games.controller';
     UsersController,
     ChallengesController,
     GamesController,
+    OperationsController,
   ],
   providers: [AppService, DatabaseService, ChallengesService],
 })

@@ -6,6 +6,7 @@ import { LedgerService } from '../ledger/ledger.service';
 import { audit, fail, serializable } from '../common/domain';
 import { CreateChallengeDto, DiscoverDto } from './challenges.dto';
 import { ensureFundedMatch } from '../matches/match-provision';
+import { betaConfig } from '../common/beta-config';
 
 const challengeSelect = {
   id: true,
@@ -73,6 +74,31 @@ export class ChallengesService {
   create(userId: string, dto: CreateChallengeDto) {
     return serializable(this.db, async (tx) => {
       await this.active(tx, userId);
+      const limits = betaConfig();
+      if (limits.enabled) {
+        if (dto.stakeAmount > limits.maxStake)
+          fail(400, 'BETA_STAKE_LIMIT', 'Stake exceeds the beta limit.');
+        const midnight = new Date();
+        midnight.setUTCHours(0, 0, 0, 0);
+        const open = await tx.challenge.count({
+          where: { createdByUserId: userId, status: 'OPEN' },
+        });
+        const daily = await tx.challenge.count({
+          where: { createdByUserId: userId, createdAt: { gte: midnight } },
+        });
+        if (open >= limits.maxOpen)
+          fail(
+            409,
+            'BETA_OPEN_CHALLENGE_LIMIT',
+            'Close an open challenge before creating another.',
+          );
+        if (daily >= limits.maxDaily)
+          fail(
+            429,
+            'BETA_DAILY_CHALLENGE_LIMIT',
+            'Daily challenge limit reached.',
+          );
+      }
       const game = await tx.game.findUnique({ where: { id: dto.gameId } });
       if (!game?.enabled) fail(400, 'GAME_UNAVAILABLE', 'Game is unavailable.');
       await this.account(tx, userId, dto.gameId, dto.platform);

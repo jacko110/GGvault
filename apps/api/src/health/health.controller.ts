@@ -11,4 +11,12 @@ export class HealthController {
   getHealth() {
     return this.healthService.getHealth();
   }
+  @Get('live')
+  live() {
+    return { status: 'ok' };
+  }
+  @Get('ready')
+  ready() {
+    return this.healthService.readiness();
+  }
 }

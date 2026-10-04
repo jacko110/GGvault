@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard, RolesGuard } from './auth.guard';
 import { AuthThrottleGuard } from './throttle.guard';
+import { MutationThrottleGuard } from './mutation-throttle.guard';
 
 @Global()
 @Module({
@@ -39,6 +40,7 @@ import { AuthThrottleGuard } from './throttle.guard';
     AuthThrottleGuard,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: MutationThrottleGuard },
   ],
   exports: [AuthService],
 })

@@ -6,12 +6,13 @@ import {
   endSession,
   refreshSession,
 } from '@/lib/session';
-import { checkMutation, failure } from '@/lib/route-security';
+import { checkMutation, failure, readMutationBody } from '@/lib/route-security';
 export const runtime = 'nodejs';
 export async function POST(
   request: NextRequest,
-  { params }: { params: { action: string } },
+  { params: pendingParams }: { params: Promise<{ action: string }> },
 ) {
+  const params = await pendingParams;
   let validMutation = false;
   try {
     checkMutation(request);
@@ -28,7 +29,7 @@ export async function POST(
       response.cookies.set(cookieName, '', { ...cookieOptions, maxAge: 0 });
     } else if (action === 'refresh') await refreshSession();
     else {
-      const raw = await request.text();
+      const raw = await readMutationBody(request);
       if (raw.length > 8192) return new NextResponse(null, { status: 413 });
       const sid = await beginSession(
         action as 'login' | 'register',

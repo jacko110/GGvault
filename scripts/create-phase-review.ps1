@@ -16,7 +16,7 @@ if (git(['status', '--porcelain']).toString().trim()) throw new Error('Commit al
 git(['rev-parse', 'HEAD~1']);
 const commit = git(['rev-parse', 'HEAD']).toString().trim();
 const tracked = git(['ls-tree', '-r', '--name-only', 'HEAD']).toString().trim().split('\n');
-const forbidden = f => f.split('/').some(p => /^(node_modules|\.next|dist|coverage|playwright-report|test-results|\.git|logs?|storage|tmp|temp|build|out|\.cache|\.npm|\.turbo|\.swc|\.parcel-cache|\.nyc_output)$/i.test(p) || (/^\.env(?:\.|$)/i.test(p) && p !== '.env.example')) || /(?:\.log|\.tmp|\.temp|\.tsbuildinfo|\.zip|\.patch|next-env\.d\.ts|\.eslintcache|\.stylelintcache)$/i.test(f);
+const forbidden = f => f.split('/').some(p => /^(node_modules|\.next|dist|coverage|playwright-report|test-results|\.git|logs?|storage|backups|tmp|temp|build|out|\.cache|\.npm|\.turbo|\.swc|\.parcel-cache|\.nyc_output)$/i.test(p) || (/^\.env(?:\.|$)/i.test(p) && p !== '.env.example')) || /(?:\.dump|\.backup|\.log|\.tmp|\.temp|\.tsbuildinfo|\.zip|\.patch|next-env\.d\.ts|\.eslintcache|\.stylelintcache)$/i.test(f);
 if (tracked.some(forbidden)) throw new Error('Forbidden tracked files: ' + tracked.filter(forbidden).join(', '));
 const changed = new Set(git(['diff', '--name-only', '--diff-filter=ACMR', 'HEAD~1', 'HEAD']).toString().trim().split('\n'));
 const source = /\.(?:ts|tsx|js|jsx|cjs|mjs|json|css|scss|md|sql|prisma|toml|yml|yaml|ps1|base64)$/;

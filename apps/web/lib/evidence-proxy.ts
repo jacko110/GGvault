@@ -24,7 +24,14 @@ export function evidencePolicy() {
     .filter((t) =>
       ['image/png', 'image/jpeg', 'image/webp', 'video/mp4'].includes(t),
     );
-  return { screenshot, video, types };
+  const max = Number(process.env.MAX_EVIDENCE_SIZE ?? 52428800);
+  if (!Number.isSafeInteger(max) || max < 1 || max > 104857600)
+    throw new Error('Invalid upload configuration');
+  return {
+    screenshot: Math.min(screenshot, max),
+    video: Math.min(video, max),
+    types,
+  };
 }
 export async function uploadEvidence(request: NextRequest, id: string) {
   try {

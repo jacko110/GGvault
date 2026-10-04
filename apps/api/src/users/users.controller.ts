@@ -86,10 +86,18 @@ export class UsersController {
     return serializable(this.db, async (tx) => {
       const game = await tx.game.findUnique({ where: { id: dto.gameId } });
       if (!game?.enabled) fail(400, 'GAME_UNAVAILABLE', 'Game is unavailable.');
-      return tx.gameAccount.create({
+      const account = await tx.gameAccount.create({
         data: { ...dto, userId: user.sub },
         select: { id: true, gameId: true, platform: true, gamertag: true },
       });
+      await audit(
+        tx,
+        user.sub,
+        'GAME_ACCOUNT_ADDED',
+        'GameAccount',
+        account.id,
+      );
+      return account;
     });
   }
   @Delete('game-accounts/:id')

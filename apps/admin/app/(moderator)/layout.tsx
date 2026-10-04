@@ -26,6 +26,7 @@ export default async function Layout({
           GGVAULT <small>MODERATION</small>
         </Link>
         <span>{user.username}</span>
+        <Link href="/operations">Beta operations</Link>
         <AdminLogout />
       </header>
       <main className="admin-main" id="main-content">

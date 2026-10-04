@@ -1,7 +1,7 @@
 import 'server-only';
 import { randomBytes, createHash } from 'node:crypto';
 import { createClient } from 'redis';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { ApiError } from './errors';
 import type { User } from './contracts';
 
@@ -47,11 +47,12 @@ async function redis() {
 }
 const key = (sid: string) =>
   `ggvault:${application}:session:${createHash('sha256').update(sid).digest('hex')}`;
-export const sessionId = () => {
-  const sid = cookies().get(cookieName)?.value;
+export const sessionId = async () => {
+  const sid = (await cookies()).get(cookieName)?.value;
   return sid && /^[a-f0-9]{64}$/.test(sid) ? sid : undefined;
 };
 export async function upstream(path: string, init: RequestInit = {}) {
+  const requestId = (await headers()).get('x-request-id');
   return fetch(
     `${process.env.API_BASE_URL ?? 'http://127.0.0.1:3001'}${path}`,
     {
@@ -59,7 +60,11 @@ export async function upstream(path: string, init: RequestInit = {}) {
       cache: 'no-store',
       redirect: 'error',
       signal: AbortSignal.timeout(10000),
-      headers: { 'Content-Type': 'application/json', ...init.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(requestId ? { 'X-Request-ID': requestId } : {}),
+        ...init.headers,
+      },
     },
   );
 }
@@ -69,6 +74,10 @@ export async function upstreamJson<T>(response: Response): Promise<T> {
     throw new ApiError(
       typeof body.code === 'string' ? body.code : 'UNKNOWN',
       response.status,
+      typeof body.requestId === 'string' &&
+        /^[a-f0-9-]{36}$/.test(body.requestId)
+        ? body.requestId
+        : undefined,
     );
   return body as T;
 }
@@ -123,7 +132,7 @@ async function refreshLocked(sid: string, current: Session) {
   return value;
 }
 export async function authenticated(path: string, init: RequestInit = {}) {
-  const sid = sessionId();
+  const sid = await sessionId();
   if (!sid) throw new ApiError('AUTH_REQUIRED', 401);
   const current = await load(sid);
   const send = (accessToken: string) =>
@@ -181,14 +190,14 @@ export async function beginSession(
   return sid;
 }
 export async function refreshSession() {
-  const sid = sessionId();
+  const sid = await sessionId();
   if (!sid) throw new ApiError('AUTH_REQUIRED', 401);
   await lock(sid, async () => {
     await refreshLocked(sid, await load(sid));
   });
 }
 export async function endSession() {
-  const sid = sessionId();
+  const sid = await sessionId();
   if (!sid) return;
   await lock(sid, async () => {
     try {

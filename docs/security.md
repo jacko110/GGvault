@@ -1,4 +1,4 @@
-# Security and validation through Phase 6B
+# Security and validation through Phase 7
 
 Passwords are Argon2id hashes; refresh tokens are hashed random secrets. JWT secrets are mandatory configuration. Passwords, hashes and tokens are excluded from audit events and user responses. Framework validation suppresses target objects and submitted values in exceptions. Unhandled errors return a generic 500 without Prisma errors or stack traces.
 
@@ -51,3 +51,9 @@ The public web app uses an opaque HttpOnly, SameSite=Lax session cookie; backend
 ## Phase 6B match and moderator frontends
 
 Admin uses a separate opaque HttpOnly session cookie and Redis namespace. Login checks the active backend role; layouts, proxy requests and evidence reads recheck moderation access. Player BFF allowlists never include moderation. JSON decisions and multipart player evidence uploads validate their exact application origin. Evidence responses stay private/no-store with restricted MIME and no-sniff headers; storage paths are not exposed. Read-only match/refund projections enforce ownership or participant/staff access and expose no raw ledger entries. Existing backend readiness, evidence locking, result authorization, moderator conflict checks and settlement accounting remain unchanged. See [match experience](match-experience.md) for the evidence-before-dispute constraint and deployment setup.
+
+## Phase 7 operational security
+
+See [threat model](threat-model.md), [session/CSRF controls](session-security.md), [dependency review](dependency-security.md), [evidence operations](evidence-operations.md) and [closed-beta runbook](closed-beta-runbook.md). Shared actor/action mutation limits, server beta caps, nonce script CSP, bounded BFF JSON, safe correlated errors and structured logs supplement existing domain controls. Existing financial mutation implementations and ledger arithmetic are retained. The common serializable wrapper uses bounded jittered retries and a safe conflict error on exhaustion; it never lowers isolation. Header/media checks are not malware scanning. Repeated moderator reads record only the first review by that actor for that match.
+
+The dependency review supersedes historical audit notes above. Phase 7 is not an independent security certification; unresolved runtime advisories and load limitations must be considered before hosting.

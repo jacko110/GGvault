@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticated, upstreamJson } from '../../../../../web/lib/session';
-import { checkMutation, failure } from '../../../../../web/lib/route-security';
+import {
+  checkMutation,
+  failure,
+  readMutationBody,
+} from '../../../../../web/lib/route-security';
 import { moderatorAccess } from '../../../../lib/access';
 const id = 'c[a-z0-9]{24}';
 const allowed: Record<string, RegExp[]> = {
@@ -14,15 +18,17 @@ const allowed: Record<string, RegExp[]> = {
 export const runtime = 'nodejs';
 async function handle(
   request: NextRequest,
-  { params }: { params: { path: string[] } },
+  { params: pendingParams }: { params: Promise<{ path: string[] }> },
 ) {
+  const params = await pendingParams;
   try {
     const path = params.path.join('/');
     if (!allowed[request.method]?.some((p) => p.test(path)))
       return new NextResponse(null, { status: 404 });
     if (request.method !== 'GET') checkMutation(request);
     await moderatorAccess();
-    const body = request.method === 'GET' ? undefined : await request.text();
+    const body =
+      request.method === 'GET' ? undefined : await readMutationBody(request);
     if (body && body.length > 8192)
       return new NextResponse(null, { status: 413 });
     return NextResponse.json(

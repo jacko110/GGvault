@@ -1,8 +1,11 @@
 import { evidenceContent } from '@/lib/evidence-proxy';
 export const runtime = 'nodejs';
-export function GET(
+export async function GET(
   _request: Request,
-  { params }: { params: { id: string; evidenceId: string } },
+  {
+    params: pendingParams,
+  }: { params: Promise<{ id: string; evidenceId: string }> },
 ) {
+  const params = await pendingParams;
   return evidenceContent(params.id, params.evidenceId);
 }

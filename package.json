@@ -29,7 +29,11 @@
     "test:integration": "node scripts/test-api.cjs integration",
     "test:e2e": "node scripts/test-api.cjs e2e",
     "prisma:deploy": "prisma migrate deploy --schema packages/database/prisma/schema.prisma",
-    "seed": "node scripts/seed.cjs"
+    "seed": "node scripts/seed.cjs",
+    "ops:ledger": "node scripts/ledger-invariants.cjs",
+    "ops:backup": "node scripts/backup-db.cjs",
+    "ops:restore": "node scripts/restore-db.cjs",
+    "test:lab": "node load-tests/lab.cjs"
   },
   "devDependencies": {
     "eslint": "^8.57.0",

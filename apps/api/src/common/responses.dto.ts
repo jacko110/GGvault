@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { discoverableStatuses } from '../challenges/challenges.dto';
 
 export class ErrorResponse {
+  @ApiPropertyOptional() requestId?: string;
   @ApiProperty() statusCode!: number;
   @ApiProperty({ example: 'CHALLENGE_NOT_PARTICIPANT' }) code!: string;
   @ApiProperty() message!: string;

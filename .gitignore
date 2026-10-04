@@ -29,6 +29,9 @@ tmp/
 temp/
 *.tmp
 *.temp
+backups/
+*.dump
+*.backup
 GGvault-phase*-review.zip
 phase*.patch
 phase*-stat.txt
