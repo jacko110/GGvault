@@ -14,6 +14,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from '../database/prisma.service';
 import { SettlementPolicy } from './settlement.policy';
 import { matchEvent } from '../matches/match-provision';
+import { serializable } from '../common/domain';
 
 interface CreateInitialCreditInput {
   userId: string;
@@ -44,28 +45,8 @@ export class LedgerService {
 
   private async runSerializableTransaction<T>(
     fn: (tx: Prisma.TransactionClient) => Promise<T>,
-    maxRetries = 3,
   ): Promise<T> {
-    let attempt = 0;
-    while (true) {
-      try {
-        return await this.prisma.$transaction(fn, {
-          isolationLevel: 'Serializable',
-        });
-      } catch (err: unknown) {
-        attempt += 1;
-        if (
-          err instanceof PrismaClientKnownRequestError &&
-          err.code === 'P2034' &&
-          attempt < maxRetries
-        ) {
-          // transient serializable conflict - retry
-          continue;
-        }
-
-        throw err;
-      }
-    }
+    return serializable(this.prisma, fn);
   }
 
   private withTransaction<T>(

@@ -311,6 +311,32 @@ describe('Phase 7 security and operations', () => {
     expect(limited).toBe(true);
     await post('/matches/' + matchId + '/ready', b).expect(200);
   });
+  it('bounds multipart field names and keeps the process available', async () => {
+    await api()
+      .post(`/matches/${matchId}/evidence`)
+      .set('Authorization', bearer(a))
+      .field('x'.repeat(33), 'SCREENSHOT')
+      .attach('file', png, { filename: 'score.png', contentType: 'image/png' })
+      .expect(400);
+    await api().get('/health/live').expect(200);
+  });
+  it('limits moderator mutations to ten per minute even when requests are invalid', async () => {
+    for (let i = 0; i < 10; i++) {
+      const response = await post(
+        `/moderation/disputes/${matchId}/resolve`,
+        moderator,
+        {},
+      );
+      expect(response.status).toBe(400);
+    }
+    const limited = await post(
+      `/moderation/disputes/${matchId}/resolve`,
+      moderator,
+      {},
+    );
+    expect(limited.status).toBe(429);
+    expect(limited.body.code).toBe('RATE_LIMITED');
+  });
   it('enforces beta stake/open/daily limits inside creation transaction', async () => {
     const previous = { ...process.env };
     try {

@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { Response } from 'express';
 import { PrismaService } from '../database/prisma.service';
 import { structuredLog } from './observability';
+import { observeTransaction } from './transaction-observation';
 
 export function fail(status: number, code: string, message: string): never {
   throw new HttpException({ statusCode: status, code, message }, status);
@@ -18,22 +19,36 @@ export async function serializable<T>(
   work: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
   for (let attempt = 0; ; attempt++) {
+    const started = performance.now();
     try {
-      return await db.$transaction(work, {
+      const result = await db.$transaction(work, {
         isolationLevel: 'Serializable',
         timeout: 15000,
+        maxWait: 5000,
       });
+      observeTransaction(performance.now() - started, false, false);
+      return result;
     } catch (error) {
+      const conflict =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2034';
+      observeTransaction(
+        performance.now() - started,
+        conflict,
+        conflict && attempt >= 8,
+      );
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        ['P2034', 'P2002'].includes(error.code) &&
-        attempt < 6
+        error.code === 'P2034' &&
+        attempt < 8
       ) {
         // Preserve serializable correctness while avoiding synchronized retry storms.
         await new Promise((resolve) =>
           setTimeout(
             resolve,
-            Math.min(250, 10 * 2 ** attempt) + Math.floor(Math.random() * 25),
+            Math.floor(
+              Math.min(1000, 50 * 2 ** attempt) * (0.5 + Math.random() * 0.5),
+            ),
           ),
         );
         continue;
@@ -89,6 +104,12 @@ export class ApiExceptionFilter implements ExceptionFilter {
           event: 'service_error',
           requestId,
           errorType: error.constructor.name,
+          errorCode:
+            typeof body === 'object' &&
+            'code' in body &&
+            body.code === 'EVIDENCE_INTEGRITY_ERROR'
+              ? 'EVIDENCE_INTEGRITY_ERROR'
+              : undefined,
         });
         return response.status(status).json({
           statusCode: status,

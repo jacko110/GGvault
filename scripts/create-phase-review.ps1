@@ -1,4 +1,4 @@
-param([Parameter(Mandatory = $true)][ValidatePattern('^[1-9][0-9]{0,2}[a-z]?$')][string]$Phase)
+param([Parameter(Mandatory = $true)][ValidatePattern('^[1-9][0-9]{0,2}(?:-[1-9][0-9]{0,2})?[a-z]?$')][string]$Phase)
 $ErrorActionPreference = 'Stop'
 $reviewWorkspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $reviewWorkspace
@@ -10,7 +10,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { createHash, randomUUID } = require('node:crypto');
 const phase = process.env.GG_REVIEW_PHASE;
-if (!/^[1-9][0-9]{0,2}[a-z]?$/.test(phase)) throw new Error('Invalid phase');
+if (!/^[1-9][0-9]{0,2}(?:-[1-9][0-9]{0,2})?[a-z]?$/.test(phase)) throw new Error('Invalid phase');
 const git = args => execFileSync('git', args, { maxBuffer: 32 * 1024 * 1024 });
 if (git(['status', '--porcelain']).toString().trim()) throw new Error('Commit all phase source changes before packaging');
 git(['rev-parse', 'HEAD~1']);
@@ -24,6 +24,7 @@ const selected = tracked.filter(f =>
   (changed.has(f) && source.test(f)) ||
   /^apps\/api\/test\//.test(f) || /^apps\/(web|admin)\/tests\//.test(f) ||
   /^packages\/database\/prisma\//.test(f) ||
+  /^scripts\/.*\.(?:cjs|ps1)$/.test(f) || /^load-tests\/.*\.(?:cjs|md)$/.test(f) ||
   /^docs\//.test(f) ||
   /(^|\/)package\.json$/.test(f) ||
   ['package-lock.json','docker-compose.yml','.env.example','.gitignore','AGENTS.md','README.md'].includes(f));

@@ -6,6 +6,9 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { randomUUID, createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
+const apiRequire = require('node:module').createRequire(
+  path.join(root, 'apps/api/package.json'),
+);
 if (fs.existsSync(path.join(root, '.env')))
   process.loadEnvFile(path.join(root, '.env'));
 const originalUrl = new URL(process.env.DATABASE_URL);
@@ -74,7 +77,7 @@ const report = {
   results: {},
 };
 async function start() {
-  const { NestFactory } = require('@nestjs/core');
+  const { NestFactory } = apiRequire('@nestjs/core');
   const { AppModule } = require('../apps/api/dist/app.module');
   const { configureApp } = require('../apps/api/dist/setup');
   const { PrismaService } = require('../apps/api/dist/database/prisma.service');
@@ -113,6 +116,120 @@ async function request(route, actor, body, expected = [200, 201], key) {
   return { ...data, httpStatus: response.status };
 }
 let game;
+async function betaSmoke() {
+  async function register(name, role = 'USER') {
+    const actor = await request('/auth/register', undefined, {
+      username: `${name}_${run}`,
+      email: `${name}_${run}@example.invalid`,
+      password: 'Smoke-only-password-123!',
+    });
+    if (role !== 'USER')
+      await db.user.update({ where: { id: actor.user.id }, data: { role } });
+    await request('/users/me/game-accounts', actor, {
+      gameId: game.id,
+      platform: 'PS5',
+      gamertag: name,
+    });
+    return actor;
+  }
+  const a = await register('Amir'),
+    b = await register('Samuel');
+  const balance = async (actor) =>
+    (await request(`/users/${actor.user.id}/balance`, actor)).balance;
+  const assert = (value, expected, name) => {
+    if (value !== expected)
+      throw new Error(`Smoke ${name}: expected ${expected}, received ${value}`);
+  };
+  assert(await balance(a), 100, 'Amir initial');
+  assert(await balance(b), 100, 'Samuel initial');
+  const first = await funded(a, b);
+  const accountBalance = async (type, challengeId) => {
+    const rows = await db.ledgerEntry.findMany({
+      where: {
+        ledgerAccount: {
+          accountType: type,
+          ...(challengeId ? { challengeId } : {}),
+        },
+      },
+    });
+    return rows.reduce(
+      (sum, row) =>
+        sum + (row.direction === 'CREDIT' ? row.amount : -row.amount),
+      0,
+    );
+  };
+  assert(
+    await accountBalance('MATCH_VAULT', first.challenge.id),
+    20,
+    'secured vault',
+  );
+  for (const actor of [a, b])
+    await request(`/matches/${first.match.id}/ready`, actor, {});
+  await request(`/matches/${first.match.id}/result`, a, {
+    myScore: 4,
+    opponentScore: 2,
+  });
+  await request(`/matches/${first.match.id}/result/confirm`, b, {});
+  assert(await balance(a), 109, 'Amir settlement');
+  assert(await balance(b), 90, 'Samuel settlement');
+  assert(await accountBalance('PLATFORM_REVENUE'), 1, 'platform fee');
+  assert(
+    await accountBalance('MATCH_VAULT', first.challenge.id),
+    0,
+    'empty settled vault',
+  );
+  const second = await result(a, b);
+  // Existing evidence deadline is before opening a dispute; do not alter domain rules.
+  const form = new FormData();
+  form.append('type', 'SCREENSHOT');
+  form.append(
+    'file',
+    new Blob(
+      [
+        Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII=',
+          'base64',
+        ),
+      ],
+      { type: 'image/png' },
+    ),
+    'score.png',
+  );
+  const upload = await fetch(base + `/matches/${second.match.id}/evidence`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + b.accessToken },
+    body: form,
+  });
+  assert(upload.status, 201, 'private evidence upload');
+  await request(`/matches/${second.match.id}/result/dispute`, b, {
+    reason: 'Score evidence requires moderator review',
+  });
+  const mod = await register('Moderator', 'MODERATOR');
+  const dispute = await db.dispute.findFirstOrThrow({
+    where: { matchResult: { matchId: second.match.id } },
+  });
+  await request(`/moderation/disputes/${dispute.id}/resolve`, mod, {
+    resolution: 'VOID_MATCH',
+    reason: 'Evidence reviewed; void and refund original stakes',
+  });
+  assert(await balance(a), 109, 'Amir refund');
+  assert(await balance(b), 90, 'Samuel refund');
+  assert(
+    await accountBalance('MATCH_VAULT', second.challenge.id),
+    0,
+    'empty refunded vault',
+  );
+  const invariant = await verify(db);
+  if (!invariant.ok) throw new Error('Smoke invariants failed');
+  report.results.smoke = {
+    passed: true,
+    initial: [100, 100],
+    secured: 20,
+    settled: { Amir: 109, Samuel: 90, platform: 1, vault: 0 },
+    refunded: { Amir: 109, Samuel: 90, vault: 0 },
+    invariant,
+  };
+}
 async function player(index, role = 'USER') {
   const { AuthService } = require('../apps/api/dist/auth/auth.service');
   const user = await app.get(AuthService).register({
@@ -384,6 +501,10 @@ async function concurrency() {
   };
 }
 async function load() {
+  const {
+    transactionDiagnostics,
+  } = require('../apps/api/dist/common/transaction-observation');
+  transactionDiagnostics(true);
   const vus = Number(process.env.LOAD_VUS ?? 20);
   const arrivalMs = Number(process.env.LOAD_ARRIVAL_MS ?? 500);
   if (!Number.isInteger(arrivalMs) || arrivalMs < 0 || arrivalMs > 10000)
@@ -397,6 +518,24 @@ async function load() {
       await player('load' + i + 'b'),
     ]);
   measurements.length = 0;
+  transactionDiagnostics(true);
+  const pgSamples = [];
+  let sampling = false;
+  const sampleTimer = setInterval(async () => {
+    if (sampling) return;
+    sampling = true;
+    try {
+      const rows =
+        await db.$queryRaw`SELECT COALESCE(c.relname,'transaction') AS relation, l.mode, l.granted, count(*)::int AS count FROM pg_locks l JOIN pg_stat_activity a ON a.pid=l.pid LEFT JOIN pg_class c ON c.oid=l.relation WHERE a.datname=current_database() AND a.pid<>pg_backend_pid() GROUP BY c.relname,l.mode,l.granted`;
+      const activity =
+        await db.$queryRaw`SELECT wait_event_type AS wait, count(*)::int AS count, COALESCE(max(EXTRACT(EPOCH FROM clock_timestamp()-xact_start)*1000),0)::float AS "maxAgeMs" FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND xact_start IS NOT NULL GROUP BY wait_event_type`;
+      pgSamples.push({ rows, activity });
+    } catch {
+      report.diagnosticsUnavailable = true;
+    } finally {
+      sampling = false;
+    }
+  }, 100);
   const start = performance.now();
   const failures = await Promise.all(
     actors.map(async ([a, b], index) => {
@@ -415,6 +554,10 @@ async function load() {
     }),
   );
   const seconds = (performance.now() - start) / 1000;
+  clearInterval(sampleTimer);
+  while (sampling) await new Promise((resolve) => setTimeout(resolve, 10));
+  report.postgresSamples = pgSamples;
+  report.mixedTransactions = transactionDiagnostics();
   const groups = {};
   for (const row of measurements) (groups[row.operation] ??= []).push(row);
   const metrics = Object.fromEntries(
@@ -530,15 +673,21 @@ async function load() {
     game = await db.game.create({
       data: { name: 'FC 26', slug: 'fc26', enabled: true },
     });
-    await recovery();
-    await concurrency();
-    await load();
+    if (process.env.BETA_SMOKE_ONLY === 'true') {
+      await betaSmoke();
+    } else {
+      await recovery();
+      await concurrency();
+      await load();
+    }
   } catch (error) {
     report.error = error.message;
     process.exitCode = 1;
   } finally {
     if (app) await app.close();
     if (redisCreated) docker(['rm', '-f', redisName]);
+    report.transactions =
+      require('../apps/api/dist/common/transaction-observation').transactionDiagnostics();
     report.finished = new Date().toISOString();
     fs.writeFileSync(
       path.join(output, 'report.json'),

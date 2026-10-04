@@ -20,14 +20,24 @@ async function verify(db) {
       const negativeBalances = balances.filter(
         (a) => BigInt(a.balance) < 0n,
       ).length;
+      const outcomes =
+        await tx.$queryRaw`SELECT "matchId" FROM ledger_transactions WHERE type IN ('MATCH_SETTLEMENT','STAKE_REFUND') GROUP BY "matchId" HAVING COUNT(*) > 1`;
+      const overfilled =
+        await tx.$queryRaw`SELECT "challengeId" FROM challenge_players GROUP BY "challengeId" HAVING COUNT(*) > 2`;
       const ok =
-        global === 0n && invalidTransactions === 0 && negativeBalances === 0;
+        global === 0n &&
+        invalidTransactions === 0 &&
+        negativeBalances === 0 &&
+        outcomes.length === 0 &&
+        overfilled.length === 0;
       return {
         ok,
         globalConservation: global.toString(),
         transactions: transactions.length,
         invalidTransactions,
         negativeBalances,
+        duplicateOrMixedOutcomes: outcomes.length,
+        overfilledChallenges: overfilled.length,
       };
     },
     { isolationLevel: 'RepeatableRead' },

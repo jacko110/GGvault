@@ -6,6 +6,9 @@ This is the ongoing record of completed work, current work, outstanding tasks an
 
 ## Current position
 
+Phase 7.1 started 2026-10-04 from Phase 7 commit `7b56476` on isolated branch `phase7-1-deployment-gate`. Scope: runtime dependency/upload review, measured transaction contention and bounded retries, admin hardening, concrete ingress/secrets/alerts/reset procedures, clean beta smoke and full regressions. Implementation and validation are complete: 259 tests passed (224 backend,22 player,7 admin,6 real browser), builds/lint and schema/migration/seed passed, clean settlement/refund smoke and recovery/Redis drills passed. The recommendation is **NO-GO**: final synchronized 20-flow load still fails11 flows (6.79% HTTP errors), and remote ingress/alert/backup deployment controls remain unverified. Commit and source-only review delivery are complete:112 verified source/review members in GGvault-phase7-1-review.zip, with all three Git reports. Final commit identity is recorded in phase7-1-commit.txt. See [Phase 7.1 validation](phase7-1-validation.md) and [go/no-go](closed-beta-go-no-go.md). No product features or real-money integration are authorized.
+
+
 Phase 7 implementation is complete from approved Phase 6B baseline `eda752d`. Security hardening, observability, recovery tooling, beta operations and measured load checks are implemented. All **242 tests passed**: 208 backend, 28 component and 6 real API-backed Chromium scenarios. Production builds/lint, responsive checks, recovery and final ledger verification passed. Implementation validation and review delivery are complete. GGvault-phase7-review.zip contains 124 verified source/review members and all three Git reports; commit identity is recorded in phase7-commit.txt. Recovery and financial invariants passed. Remaining dependency findings and synchronous mutation-burst failures are documented; unrestricted deployment readiness is not claimed. See [Phase 7 validation](phase7-validation.md).
 
 Phase 6B implementation and validation are complete from approved Phase 6A baseline `b3b3cd8`. Player match/readiness/result/evidence/outcome screens and the separate moderator application are implemented. New backend changes are read-only projections for owned matches, safe refund amounts and queue game metadata; domain mutations and ledger accounting are unchanged. Evidence follows existing backend deadlines and must be uploaded before opening a dispute. All **216 tests passed**, along with builds, lint and responsive checks at 390/768/1440px. Commit and review delivery are complete: GGvault-phase6b-review.zip contains 109 verified source/review members and all three Git reports. Commit identity is recorded in phase6b-commit.txt. See [Phase 6B validation](phase6b-validation.md).
@@ -30,6 +33,17 @@ Phase 4 was delivered and approved; its source-only review remains available as 
 | Phase 6B | Match experience and separate moderator application | Implemented and validated on 2026-10-03 | [Validation report](phase6b-validation.md); source-only review delivered; 109 members verified; commit identity in phase6b-commit.txt |
 
 | Phase 7 | Closed TEST-credit beta hardening, observability, recovery and operations | Implemented and validated on 2026-10-04 | [Validation report](phase7-validation.md); 242 tests passed; source-only review delivered; 124 members verified; residual risks documented |
+
+## Phase 7.1 completion
+
+- [x] Isolate Nest11 migration, classify every audit finding and map upload prerequisites/controls.
+- [x] Measure unchanged and final synchronized workloads, operation-specific conflicts and PostgreSQL lock/wait samples.
+- [x] Unify bounded P2034-only retries without changing accounting/isolation; retain funding idempotency keys on retryable errors.
+- [x] Tighten admin lifetime/mutation limits and evidence parser bounds; add tested TEST-only reset guards.
+- [x] Document ingress, secrets, alerts, reset and explicit NO-GO gates.
+- [x] Complete 259 tests, production build/lint, migration/seed, clean smoke, recovery and invariant verification.
+- [x] Commit Phase 7.1 and deliver verified committed-source ZIP/reports:112 members, matching hashes and forbidden artifacts excluded.
+- Outstanding launch gates: unacceptable synchronized mutation exhaustion; deploy/verify actual invited ingress, admin MFA, monitoring and backup operations. These are not marked complete.
 
 ## Phase 7 completion
 
@@ -166,6 +180,8 @@ Clean PostgreSQL/Redis reset, Prisma generation, all three migrations and FC 26 
 | 2026-10-03 | Implement and validate Phase 6B | Player match experience and moderator app complete; all 216 tests passed; builds/lint and responsive checks passed; source-only archive and all three reports delivered; 109 member hashes verified |
 
 | 2026-10-04 | Complete Phase 7 implementation and validation | 242 tests passed; builds/lint passed; recovery and financial invariants verified; measured load and dependency limitations documented; source-only ZIP and all three reports delivered, 124 members verified |
+
+| 2026-10-04 | Phase 7.1 dependency migration and deployment-gate review | 259 tests/build/lint passed; clean financial smoke and recovery verified; synchronized load improved but still fails; NO-GO recommendation; committed-source ZIP/reports delivered and112 member hashes verified |
 
 ## Future phase record template
 

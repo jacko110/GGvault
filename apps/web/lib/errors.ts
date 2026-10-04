@@ -1,6 +1,6 @@
 const messages: Record<string, string> = {
   TRANSACTION_RETRY:
-    'Another request is being processed. Refresh and try again.',
+    'The match was updated at the same time. Please try again.',
   RATE_LIMITED: 'Too many requests. Please wait a minute and try again.',
   BETA_STAKE_LIMIT: 'This stake exceeds the TEST-credit beta limit.',
   BETA_OPEN_CHALLENGE_LIMIT: 'Close an open challenge before creating another.',

@@ -57,3 +57,7 @@ Admin uses a separate opaque HttpOnly session cookie and Redis namespace. Login 
 See [threat model](threat-model.md), [session/CSRF controls](session-security.md), [dependency review](dependency-security.md), [evidence operations](evidence-operations.md) and [closed-beta runbook](closed-beta-runbook.md). Shared actor/action mutation limits, server beta caps, nonce script CSP, bounded BFF JSON, safe correlated errors and structured logs supplement existing domain controls. Existing financial mutation implementations and ledger arithmetic are retained. The common serializable wrapper uses bounded jittered retries and a safe conflict error on exhaustion; it never lowers isolation. Header/media checks are not malware scanning. Repeated moderator reads record only the first review by that actor for that match.
 
 The dependency review supersedes historical audit notes above. Phase 7 is not an independent security certification; unresolved runtime advisories and load limitations must be considered before hosting.
+
+## Phase 7.1 update
+
+The [dependency reachability review](phase7-1-dependencies.md) and [upload advisory mapping](upload-advisories.md) supersede Phase7 dependency-version findings. Admin BFF sessions now expire absolutely after eight hours, moderation mutations are limited to ten per actor/action/minute, and funding retains its key on retryable conflicts. See the [NO-GO report](closed-beta-go-no-go.md) before any beta deployment.

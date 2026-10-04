@@ -33,14 +33,19 @@
     "ops:ledger": "node scripts/ledger-invariants.cjs",
     "ops:backup": "node scripts/backup-db.cjs",
     "ops:restore": "node scripts/restore-db.cjs",
-    "test:lab": "node load-tests/lab.cjs"
+    "test:lab": "node load-tests/lab.cjs",
+    "ops:beta-reset": "node scripts/beta-reset.cjs"
   },
   "devDependencies": {
+    "@nestjs/common": "11.2.7",
     "eslint": "^8.57.0",
     "prettier": "^3.3.1",
     "typescript": "^5.5.4"
   },
   "engines": {
     "node": ">=22.9.0"
+  },
+  "overrides": {
+    "@nestjs/common": "11.2.7"
   }
 }

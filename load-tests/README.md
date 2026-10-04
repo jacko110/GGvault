@@ -1,5 +1,7 @@
 # Local Phase 7 lab
 
+Phase 7.1 adds operation-specific attempt/conflict/exhaustion counts and 100ms PostgreSQL lock/wait sampling (no query text, credentials or bind parameters). Use `LOAD_ARRIVAL_MS=0` and `LOAD_VUS=20` to reproduce the synchronized workload. `BETA_SMOKE_ONLY=true` instead runs Amir/Samuel registration, exact 109/90/1 settlement, private evidence, moderator VOID and invariant checks on a newly generated database. No existing database is reset. Evidence is uploaded before dispute under the existing deadline. Both switches are environment variables; output remains in ignored `.cache`.
+
 Run from the repository root after `npm run build:api`, with local PostgreSQL/Redis Docker images available:
 
 ```

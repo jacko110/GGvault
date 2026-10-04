@@ -6,6 +6,8 @@ import { ApiError } from './errors';
 import type { User } from './contracts';
 
 const application = process.env.GGVAULT_APP === 'admin' ? 'admin' : 'web';
+// Absolute lifetime: token refresh never extends this deadline.
+const sessionSeconds = application === 'admin' ? 8 * 3600 : 30 * 86400;
 const cookieBase =
   application === 'admin' ? 'ggvault-admin-session' : 'ggvault-session';
 export const cookieName =
@@ -18,7 +20,7 @@ export const cookieOptions = {
   sameSite: 'lax' as const,
   secure: cookieName.startsWith('__Host-'),
   path: '/',
-  maxAge: 30 * 86400,
+  maxAge: sessionSeconds,
 };
 type Tokens = { accessToken: string; refreshToken: string };
 type Session = Tokens & { expiresAt: number };
@@ -183,9 +185,9 @@ export async function beginSession(
     JSON.stringify({
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      expiresAt: Date.now() + 30 * 86400000,
+      expiresAt: Date.now() + sessionSeconds * 1000,
     }),
-    { EX: 30 * 86400 },
+    { EX: sessionSeconds },
   );
   return sid;
 }

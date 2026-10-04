@@ -61,7 +61,16 @@ test('both BFFs enforce security headers and reject malicious/missing origins', 
       }
   }
   for (const origin of [undefined, 'https://attacker.example']) {
-    const profile = await request.patch('http://127.0.0.1:3100/api/backend/users/me', {headers:{'Content-Type':'application/json',...(origin ? {Origin:origin} : {})},data:{displayName:'Rejected'}});
+    const profile = await request.patch(
+      'http://127.0.0.1:3100/api/backend/users/me',
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(origin ? { Origin: origin } : {}),
+        },
+        data: { displayName: 'Rejected' },
+      },
+    );
     expect(profile.status()).toBe(403);
     const upload = await request.post(
       `http://127.0.0.1:3100/api/evidence/${id}`,
@@ -135,6 +144,12 @@ test('administrator operations page shows safe counts and rejects role demotion'
     await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL('http://127.0.0.1:3102/');
+    const cookie = (await page.context().cookies()).find(
+      (c) => c.name === 'ggvault-admin-session',
+    );
+    expect(cookie?.httpOnly).toBe(true);
+    expect(cookie!.expires - Date.now() / 1000).toBeGreaterThan(7 * 3600);
+    expect(cookie!.expires - Date.now() / 1000).toBeLessThanOrEqual(8 * 3600);
     await page.getByRole('link', { name: 'Beta operations' }).click();
     await expect(
       page.getByRole('heading', { name: 'Beta operations' }),

@@ -104,7 +104,11 @@ export function ChallengeScreen({
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Please try again.');
       setDialog(null);
-      if (error instanceof ApiError && error.status < 500) {
+      if (
+        error instanceof ApiError &&
+        error.status < 500 &&
+        error.code !== 'TRANSACTION_RETRY'
+      ) {
         operationKey.current = undefined;
         try {
           sessionStorage.removeItem(storageKey);

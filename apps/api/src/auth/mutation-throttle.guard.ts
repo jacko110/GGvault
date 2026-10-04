@@ -43,7 +43,11 @@ export class MutationThrottleGuard implements CanActivate, OnModuleDestroy {
           },
         ),
       );
-      if (count > this.limit) {
+      const limit =
+        ctx.getClass().name === 'ModerationController'
+          ? Math.min(this.limit, 10)
+          : this.limit;
+      if (count > limit) {
         ctx.switchToHttp().getResponse().setHeader('Retry-After', '60');
         fail(429, 'RATE_LIMITED', 'Too many requests. Retry in one minute.');
       }

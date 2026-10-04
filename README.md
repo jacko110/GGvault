@@ -43,3 +43,7 @@ Use npm run ops:ledger for read-only invariants and npm run test:lab for the iso
 - [Settlement and refunds](docs/settlement.md)
 - [Dispute resolution](docs/dispute-resolution.md)
 - [Moderation](docs/moderation.md)
+
+## Phase 7.1 deployment gate
+
+See [go/no-go report](docs/closed-beta-go-no-go.md), [deployment and secrets](docs/beta-deployment.md), [alerts](docs/beta-alerts.md), [TEST-only reset](docs/beta-reset.md), [dependency reachability](docs/phase7-1-dependencies.md), [upload review](docs/upload-advisories.md), and [contention evidence](docs/transaction-contention.md). The gate report distinguishes local implementation evidence from an actual remote deployment.

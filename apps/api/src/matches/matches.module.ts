@@ -24,6 +24,8 @@ import { MatchReadsController } from './match-reads.controller';
             fields: 1,
             parts: 3,
             fieldSize: 32,
+            fieldNameSize: 32,
+            headerPairs: 32,
           },
         };
       },

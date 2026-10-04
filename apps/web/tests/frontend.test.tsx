@@ -209,11 +209,17 @@ it('insufficient credits shows a friendly error and retains server state', async
   expect(screen.queryByText('SQL internals')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Secure my stake' })).toBeEnabled();
 });
-it('uncertain funding retries reuse the same key', async () => {
+it.each([
+  ['SERVICE_UNAVAILABLE', 503],
+  ['TRANSACTION_RETRY', 409],
+] as const)('%s funding retries reuse the same key', async (code, status) => {
   const original = mockFetch.getMockImplementation()!;
   mockFetch.mockImplementation((url, options) =>
     url.endsWith('/fund')
-      ? response({ code: 'SERVICE_UNAVAILABLE' }, 503)
+      ? response(
+          { code, message: 'Prisma P2034 Serializable internals' },
+          status,
+        )
       : original(url, options),
   );
   render(<ChallengeScreen id="cc" vault />);
@@ -223,6 +229,9 @@ it('uncertain funding retries reuse the same key', async () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Secure 10 TEST' }));
     await screen.findByRole('alert');
+    expect(
+      screen.queryByText(/Prisma|P2034|Serializable/),
+    ).not.toBeInTheDocument();
   }
   const calls = mockFetch.mock.calls.filter(([url]) => url.endsWith('/fund'));
   expect(calls).toHaveLength(2);

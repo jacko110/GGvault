@@ -1,5 +1,9 @@
 import { randomUUID } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import {
+  transactionContext,
+  transactionDiagnostics,
+} from './transaction-observation';
 
 type Observation = { count: number; sum: number; buckets: number[] };
 const bounds = [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
@@ -105,7 +109,7 @@ export function requestObservation(
         : undefined,
     });
   });
-  next();
+  transactionContext.run(req, next);
 }
 export function httpMetrics() {
   const lines = [
@@ -123,6 +127,14 @@ export function httpMetrics() {
       `ggvault_http_duration_seconds_bucket{${labels},le="+Inf"} ${item.count}`,
       `ggvault_http_duration_seconds_sum{${labels}} ${item.sum}`,
       `ggvault_http_duration_seconds_count{${labels}} ${item.count}`,
+    );
+  }
+  for (const [operation, sample] of Object.entries(transactionDiagnostics())) {
+    const label = JSON.stringify(operation);
+    lines.push(
+      `ggvault_transaction_attempts_total{operation=${label}} ${sample.attempts}`,
+      `ggvault_transaction_conflicts_total{operation=${label}} ${sample.conflicts}`,
+      `ggvault_transaction_exhausted_total{operation=${label}} ${sample.exhausted}`,
     );
   }
   return lines.join('\n') + '\n';
