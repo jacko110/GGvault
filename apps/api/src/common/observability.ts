@@ -135,6 +135,8 @@ export function httpMetrics() {
       `ggvault_transaction_attempts_total{operation=${label}} ${sample.attempts}`,
       `ggvault_transaction_conflicts_total{operation=${label}} ${sample.conflicts}`,
       `ggvault_transaction_exhausted_total{operation=${label}} ${sample.exhausted}`,
+      `transaction_retry_total{operation=${label}} ${sample.retries}`,
+      `transaction_retry_exhausted_total{operation=${label}} ${sample.exhausted}`,
     );
   }
   return lines.join('\n') + '\n';

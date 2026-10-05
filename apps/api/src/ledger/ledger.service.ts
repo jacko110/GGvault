@@ -15,6 +15,7 @@ import { PrismaService } from '../database/prisma.service';
 import { SettlementPolicy } from './settlement.policy';
 import { matchEvent } from '../matches/match-provision';
 import { serializable } from '../common/domain';
+import { observeSuboperation } from '../common/transaction-observation';
 
 interface CreateInitialCreditInput {
   userId: string;
@@ -377,6 +378,15 @@ export class LedgerService {
   }
 
   async settleMatch(
+    input: SettleMatchInput,
+    transactionClient?: Prisma.TransactionClient,
+  ) {
+    return observeSuboperation('settlement', () =>
+      this.settleMatchWork(input, transactionClient),
+    );
+  }
+
+  private async settleMatchWork(
     input: SettleMatchInput,
     transactionClient?: Prisma.TransactionClient,
   ) {

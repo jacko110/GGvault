@@ -239,6 +239,42 @@ it.each([
     calls[1][1].headers['Idempotency-Key'],
   );
 });
+it('refreshes a committed stake after a lost response without another financial POST', async () => {
+  const original = mockFetch.getMockImplementation()!;
+  let committed = false;
+  mockFetch.mockImplementation((url, options) => {
+    if (url.endsWith('/fund')) {
+      committed = true;
+      return Promise.reject(new Error('Response lost'));
+    }
+    if (committed && url.endsWith('/challenges/cc'))
+      return response({
+        ...challenge,
+        players: [{ ...a, status: 'FUNDED' }, b],
+      });
+    if (committed && url.endsWith('/vault')) return response({ balance: 10 });
+    return original(url, options);
+  });
+  render(<ChallengeScreen id="cc" vault />);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Secure my stake' }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Secure 10 TEST' }));
+  await screen.findByRole('alert');
+  expect(
+    screen.queryByRole('button', { name: 'Secure my stake' }),
+  ).not.toBeInTheDocument();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.endsWith('/fund')),
+  ).toHaveLength(1);
+  expect(mockRefresh).toHaveBeenCalled();
+  expect(sessionStorage.getItem('ggvault:fund:ca:cc')).not.toBeNull();
+});
+it('uses the safe concurrency message', () => {
+  expect(friendlyError('TRANSACTION_RETRY')).toBe(
+    'GGVault was updated at the same time. Please try again.',
+  );
+});
 it('transaction history shows signed safe entries', async () => {
   mockFetch.mockImplementation(() =>
     response({

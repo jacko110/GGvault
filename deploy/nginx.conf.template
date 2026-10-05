@@ -1,0 +1,64 @@
+limit_conn_zone $binary_remote_addr zone=beta_connections:10m;
+server_tokens off;
+server {
+  listen 80 default_server;
+  server_name _;
+  return 444;
+}
+server {
+  listen 80;
+  server_name ${PLAYER_DOMAIN} ${ADMIN_DOMAIN};
+  return 308 https://$host$request_uri;
+}
+server {
+  listen 443 ssl default_server;
+  ssl_reject_handshake on;
+}
+server {
+  listen 443 ssl;
+  server_name ${PLAYER_DOMAIN};
+  ssl_certificate /run/secrets/tls_cert;
+  ssl_certificate_key /run/secrets/tls_key;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  add_header Strict-Transport-Security "max-age=31536000" always;
+  auth_basic "Invited TEST-credit beta";
+  auth_basic_user_file /run/secrets/player_access;
+  client_max_body_size 51m;
+  client_body_timeout 20s;
+  limit_conn beta_connections 8;
+  location ~ ^/(storage|evidence|docs|debug|metrics)(/|$) { return 404; }
+  location ~ \.map$ { return 404; }
+  location / {
+    proxy_pass http://web:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header Authorization "";
+    proxy_read_timeout 30s;
+  }
+}
+server {
+  listen 443 ssl;
+  server_name ${ADMIN_DOMAIN};
+  ssl_certificate /run/secrets/tls_cert;
+  ssl_certificate_key /run/secrets/tls_key;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  add_header Strict-Transport-Security "max-age=31536000" always;
+  satisfy all;
+  allow ${ADMIN_VPN_CIDR};
+  deny all;
+  auth_basic "Named beta operators";
+  auth_basic_user_file /run/secrets/admin_access;
+  client_max_body_size 16k;
+  limit_conn beta_connections 4;
+  location ~ ^/(storage|evidence|docs|debug|metrics)(/|$) { return 404; }
+  location ~ \.map$ { return 404; }
+  location / {
+    proxy_pass http://admin:3002;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header Authorization "";
+    proxy_read_timeout 30s;
+  }
+}

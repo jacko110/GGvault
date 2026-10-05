@@ -102,7 +102,6 @@ export function ChallengeScreen({
       }
       setDialog(null);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Please try again.');
       setDialog(null);
       if (
         error instanceof ApiError &&
@@ -113,10 +112,15 @@ export function ChallengeScreen({
         try {
           sessionStorage.removeItem(storageKey);
         } catch {}
-        await resource.reload();
-        if (me) await vaultResource.reload();
-        await refreshBalance();
       }
+      // A lost response may follow a committed mutation. Refresh before enabling
+      // manual retry, preserving the same funding key for uncertain outcomes.
+      await Promise.allSettled([
+        resource.reload(),
+        ...(me ? [vaultResource.reload()] : []),
+        refreshBalance(),
+      ]);
+      setError(error instanceof Error ? error.message : 'Please try again.');
     } finally {
       pending.current = false;
       setBusy(false);

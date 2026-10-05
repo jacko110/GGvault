@@ -146,6 +146,7 @@ export function DisputeReview({ id }: { id: string }) {
         reason: reason.trim(),
       });
     } catch (error) {
+      await Promise.allSettled([resource.reload(), room.reload()]);
       setError(
         error instanceof Error
           ? error.message

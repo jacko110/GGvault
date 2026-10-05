@@ -12,11 +12,19 @@ describe('bounded transaction retries', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
   it('retries serialization conflicts with the same closure and isolation', async () => {
+    const admission = jest.fn().mockResolvedValue(0);
+    const tx = { $executeRaw: admission };
     const transaction = jest
       .fn()
       .mockRejectedValueOnce(known('P2034'))
-      .mockResolvedValue('ok');
-    const work = jest.fn();
+      .mockImplementation((callback) => callback(tx));
+    const work = jest.fn().mockImplementation(async (client) => {
+      expect(client).toBe(tx);
+      expect(admission).toHaveBeenCalledWith([
+        'LOCK TABLE ledger_transactions IN SHARE ROW EXCLUSIVE MODE',
+      ]);
+      return 'ok';
+    });
     const result = serializable(
       { $transaction: transaction } as unknown as PrismaService,
       work,
@@ -24,7 +32,8 @@ describe('bounded transaction retries', () => {
     await jest.runAllTimersAsync();
     await expect(result).resolves.toBe('ok');
     expect(transaction).toHaveBeenCalledTimes(2);
-    expect(transaction).toHaveBeenLastCalledWith(work, {
+    expect(work).toHaveBeenCalledTimes(1);
+    expect(transaction).toHaveBeenLastCalledWith(expect.any(Function), {
       isolationLevel: 'Serializable',
       timeout: 15000,
       maxWait: 5000,
@@ -32,6 +41,7 @@ describe('bounded transaction retries', () => {
   });
   it.each([
     known('P2002'),
+    known('P2028'),
     new HttpException('insufficient funds', 400),
     new HttpException('forbidden', 403),
     new HttpException('state changed', 409),

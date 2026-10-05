@@ -1,10 +1,13 @@
 # GGVault project progress
 
-Last updated: 2026-10-04
+Last updated: 2026-10-05
 
 This is the ongoing record of completed work, current work, outstanding tasks and phase handovers. Update it as work progresses. Completed implementation and completed review delivery are tracked separately.
 
 ## Current position
+
+Phase 7.2 started from `79485c0` on 2026-10-04. The original 20-flow baseline (162 requests, 11 failed flows, 6.79% errors) is preserved. Final synchronized repetitions all passed: 220 requests each, zero errors/failed flows, all financial invariants zero; optional 50-flow observation also passed (550 requests). Backend 228, player 24, admin 7, browser 6 and deployment-script 6 tests have passed; production build/lint and local Compose/nginx checks passed. Provider-neutral preparation and Linux image build/runtime validation passed on 2026-10-05. LOCAL GATES PASSED — DEPLOYMENT VERIFICATION PENDING. User confirmed no deployment target or alert channel exists. All real-target gates are BLOCKED — DEPLOYMENT TARGET NOT YET PROVIDED; overall NO-GO. Implementation, local validation and source-only review delivery are complete. GGvault-phase7-2-review.zip contains 136 verified members; all three Git reports and separate validation/decision documents are delivered. Final commit identity is in phase7-2-commit.txt.
+
 
 Phase 7.1 started 2026-10-04 from Phase 7 commit `7b56476` on isolated branch `phase7-1-deployment-gate`. Scope: runtime dependency/upload review, measured transaction contention and bounded retries, admin hardening, concrete ingress/secrets/alerts/reset procedures, clean beta smoke and full regressions. Implementation and validation are complete: 259 tests passed (224 backend,22 player,7 admin,6 real browser), builds/lint and schema/migration/seed passed, clean settlement/refund smoke and recovery/Redis drills passed. The recommendation is **NO-GO**: final synchronized 20-flow load still fails11 flows (6.79% HTTP errors), and remote ingress/alert/backup deployment controls remain unverified. Commit and source-only review delivery are complete:112 verified source/review members in GGvault-phase7-1-review.zip, with all three Git reports. Final commit identity is recorded in phase7-1-commit.txt. See [Phase 7.1 validation](phase7-1-validation.md) and [go/no-go](closed-beta-go-no-go.md). No product features or real-money integration are authorized.
 
@@ -34,7 +37,21 @@ Phase 4 was delivered and approved; its source-only review remains available as 
 
 | Phase 7 | Closed TEST-credit beta hardening, observability, recovery and operations | Implemented and validated on 2026-10-04 | [Validation report](phase7-validation.md); 242 tests passed; source-only review delivered; 124 members verified; residual risks documented |
 
-## Phase 7.1 completion
+| Phase 7.2 | Local contention gate closure and provider-neutral deployment preparation | Local validation complete; deployment remains NO-GO | 271 tests, three 20-flow gates, optional 50-flow and image/configuration checks passed; 136-member source-only review delivered |
+
+## Phase 7.2 local completion
+
+- [x] Preserve the failed baseline and measure exact operation/query error surfaces and transaction timing.
+- [x] Remove failed account/planner experiments; implement database admission without changing isolation/accounting.
+- [x] Pass all three identical 20-flow gates, then record the optional 50-flow observation.
+- [x] Validate lost-response funding recovery, safe retry UX/metrics and 271 regression tests.
+- [x] Prepare provider-neutral ingress/TLS/secrets/invite cap, operator, backup/restore, alert and smoke procedures.
+- [x] Validate private PostgreSQL/Redis startup, Compose/nginx configuration and exclusion rules locally.
+- [x] Finish Linux image validation and final reports.
+- [x] Commit and deliver the verified source-only archive and separate reports: 136 members, committed-content hashes and exclusions checked.
+- Real deployment and alert channel: **BLOCKED — DEPLOYMENT TARGET NOT YET PROVIDED**. Overall **NO-GO**.
+
+## Phase 7.1 completion (historical)
 
 - [x] Isolate Nest11 migration, classify every audit finding and map upload prerequisites/controls.
 - [x] Measure unchanged and final synchronized workloads, operation-specific conflicts and PostgreSQL lock/wait samples.
@@ -182,6 +199,10 @@ Clean PostgreSQL/Redis reset, Prisma generation, all three migrations and FC 26 
 | 2026-10-04 | Complete Phase 7 implementation and validation | 242 tests passed; builds/lint passed; recovery and financial invariants verified; measured load and dependency limitations documented; source-only ZIP and all three reports delivered, 124 members verified |
 
 | 2026-10-04 | Phase 7.1 dependency migration and deployment-gate review | 259 tests/build/lint passed; clean financial smoke and recovery verified; synchronized load improved but still fails; NO-GO recommendation; committed-source ZIP/reports delivered and112 member hashes verified |
+
+| 2026-10-04 | Phase 7.2 local gate closure and provider-neutral preparation | Three identical 20-flow gates and optional 50-flow observation passed with zero errors/invariant violations; 271 tests, application build/lint, clean smoke and local service/configuration checks passed. No actual target/channel exists. Linux image validation and source-only commit/archive delivery completed on 2026-10-05. |
+
+| 2026-10-05 | Complete Phase 7.2 Linux image/runtime checks and source-only handover | 136 ZIP member hashes and exclusions verified; UTF-8 patch/stat/commit reports and separate Markdown reports delivered. LOCAL GATES PASSED — DEPLOYMENT VERIFICATION PENDING; overall NO-GO; no Phase 8 work. |
 
 ## Future phase record template
 

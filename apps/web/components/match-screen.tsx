@@ -103,9 +103,9 @@ export function MatchScreen({ id }: { id: string }) {
       setNotice('Match updated.');
       await refresh();
     } catch (error) {
+      await Promise.allSettled([refresh(), refreshBalance()]);
       setError(error instanceof Error ? error.message : 'Please try again.');
       setDialog(null);
-      await refresh();
     } finally {
       pending.current = false;
       setBusy(false);

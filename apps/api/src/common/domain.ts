@@ -20,13 +20,38 @@ export async function serializable<T>(
 ): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     const started = performance.now();
+    const timing = { admissionMs: 0, workMs: 0 };
     try {
-      const result = await db.$transaction(work, {
-        isolationLevel: 'Serializable',
-        timeout: 15000,
-        maxWait: 5000,
-      });
-      observeTransaction(performance.now() - started, false, false);
+      const result = await db.$transaction(
+        async (tx) => {
+          // Acquire admission before the first MVCC read. PostgreSQL coordinates
+          // all API instances; the serializable snapshot is taken after admission.
+          const waiting = performance.now();
+          try {
+            await tx.$executeRaw`LOCK TABLE ledger_transactions IN SHARE ROW EXCLUSIVE MODE`;
+          } finally {
+            timing.admissionMs = performance.now() - waiting;
+          }
+          const working = performance.now();
+          try {
+            return await work(tx);
+          } finally {
+            timing.workMs = performance.now() - working;
+          }
+        },
+        {
+          isolationLevel: 'Serializable',
+          timeout: 15000,
+          maxWait: 5000,
+        },
+      );
+      observeTransaction(
+        performance.now() - started,
+        false,
+        false,
+        undefined,
+        timing,
+      );
       return result;
     } catch (error) {
       const conflict =
@@ -36,6 +61,10 @@ export async function serializable<T>(
         performance.now() - started,
         conflict,
         conflict && attempt >= 8,
+        error instanceof Prisma.PrismaClientKnownRequestError
+          ? error.code
+          : 'DOMAIN_OR_OTHER',
+        timing,
       );
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&

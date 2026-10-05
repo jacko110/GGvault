@@ -59,6 +59,7 @@ Object.assign(process.env, {
   DATABASE_URL: targetUrl.toString(),
   REDIS_URL: 'redis://127.0.0.1:6387',
   NODE_ENV: 'test',
+  TRANSACTION_DIAGNOSTICS: 'true',
   BETA_MODE: 'true',
   ENABLE_TEST_CREDITS: 'true',
   INITIAL_TEST_CREDITS: '100',
@@ -89,19 +90,50 @@ async function start() {
 }
 let base;
 async function request(route, actor, body, expected = [200, 201], key) {
+  const step =
+    route === '/challenges' && body
+      ? 'create'
+      : route.endsWith('/join')
+        ? 'join'
+        : route.endsWith('/fund') && actor?.labSide
+          ? `fund_${actor.labSide}`
+          : route.endsWith('/ready') && actor?.labSide
+            ? `ready_${actor.labSide}`
+            : route.endsWith('/result/confirm')
+              ? 'confirm'
+              : route.endsWith('/result')
+                ? 'result'
+                : undefined;
   const start = performance.now();
+  const operation =
+    (body === undefined ? 'GET ' : 'POST ') +
+    route.replace(/c[a-z0-9]{24}/g, ':id').split('?')[0];
+  const networkFailure = (error) => {
+    measurements.push({
+      step,
+      operation,
+      ms: performance.now() - start,
+      status: 0,
+      code: 'NETWORK_OR_INVALID_RESPONSE',
+      expected: false,
+    });
+    throw error;
+  };
   const response = await fetch(base + route, {
     method: body === undefined ? 'GET' : 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(actor ? { Authorization: 'Bearer ' + actor.accessToken } : {}),
       ...(key ? { 'Idempotency-Key': key } : {}),
+      ...(step ? { 'X-GGVault-Lab-Step': step } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(30000),
-  });
-  const data = await response.json();
+  }).catch(networkFailure);
+  const data = await response.json().catch(networkFailure);
   measurements.push({
+    step,
+    code: data.code,
     operation:
       (body === undefined ? 'GET ' : 'POST ') +
       route.replace(/c[a-z0-9]{24}/g, ':id').split('?')[0],
@@ -514,11 +546,17 @@ async function load() {
   const actors = [];
   for (let i = 0; i < vus; i++)
     actors.push([
-      await player('load' + i + 'a'),
-      await player('load' + i + 'b'),
+      { ...(await player('load' + i + 'a')), labSide: 'a' },
+      { ...(await player('load' + i + 'b')), labSide: 'b' },
     ]);
   measurements.length = 0;
   transactionDiagnostics(true);
+  require('../apps/api/dist/common/transaction-observation').queryDiagnostics(
+    true,
+  );
+  require('../apps/api/dist/common/transaction-observation').suboperationDiagnostics(
+    true,
+  );
   const pgSamples = [];
   let sampling = false;
   const sampleTimer = setInterval(async () => {
@@ -558,6 +596,20 @@ async function load() {
   while (sampling) await new Promise((resolve) => setTimeout(resolve, 10));
   report.postgresSamples = pgSamples;
   report.mixedTransactions = transactionDiagnostics();
+  report.queryOperations =
+    require('../apps/api/dist/common/transaction-observation').queryDiagnostics();
+  report.suboperations =
+    require('../apps/api/dist/common/transaction-observation').suboperationDiagnostics();
+  report.operationRequests = measurements.map(
+    ({ step, operation, ms, status, code, expected }) => ({
+      step,
+      operation,
+      ms,
+      status,
+      code,
+      expected,
+    }),
+  );
   const groups = {};
   for (const row of measurements) (groups[row.operation] ??= []).push(row);
   const metrics = Object.fromEntries(

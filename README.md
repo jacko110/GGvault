@@ -4,6 +4,8 @@ GGVault uses **non-withdrawable TEST credits** for competitive gaming challenges
 
 ## Local setup
 
+Phase 7.2 local synchronized gates pass; the overall closed-beta decision remains **NO-GO** until a real deployment target is verified. See [validation](docs/phase7-2-validation.md), [final decision](docs/closed-beta-final-go-no-go.md), [provider-neutral deployment preparation](docs/phase7-2-deployment-preparation.md) and [project tracker](docs/project-progress.md). No target or external alert channel has been configured.
+
 Requires Node 22.9+, Docker, PostgreSQL 16 and Redis 7.
 
 1. Install with npm install.

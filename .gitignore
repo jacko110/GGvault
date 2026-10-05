@@ -32,7 +32,16 @@ temp/
 backups/
 *.dump
 *.backup
+secrets/
+*.pem
+*.key
+.aws/
+phase7-2-validation.md
+closed-beta-final-go-no-go.md
+!docs/phase7-2-validation.md
+!docs/closed-beta-final-go-no-go.md
 GGvault-phase*-review.zip
+GGvault-phase*-review/
 phase*.patch
 phase*-stat.txt
 phase*-commit.txt
